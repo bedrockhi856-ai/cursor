@@ -258,70 +258,66 @@ class _PhoneUsageScreenState extends State<PhoneUsageScreen> with TickerProvider
                 ],
               ),
             ),
-            const SizedBox(height: 10), // Minimal spacing
-               Padding(
-                 padding: const EdgeInsets.only(bottom: 10),
-                 child: Padding(
-                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                   child: AnimatedBuilder(
-                     animation: _buttonAnimation,
-                     builder: (context, child) {
-                       return Transform.scale(
-                         scale: _buttonAnimation.value,
-                         child: SizedBox(
-                           width: double.infinity,
-                           height: 60,
-                           child: ElevatedButton(
-                             style: ElevatedButton.styleFrom(
-                               backgroundColor: const Color(0xFFFFD12A),
-                               shape: RoundedRectangleBorder(
-                                 borderRadius: BorderRadius.circular(30),
-                               ),
-                               elevation: 6,
-                               shadowColor: Colors.black.withValues(alpha: 0.2),
-                             ),
-                             onPressed: () {
-                               _buttonController.forward().then((_) {
-                                 _buttonController.reverse();
-                                 Navigator.of(context).push(
-                                   PageRouteBuilder(
-                                     pageBuilder: (context, animation, secondaryAnimation) => ProfessionalResultScreen(
-                                       age: widget.age,
-                                       usageIndex: selected,
-                                     ),
-                                     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                       return SlideTransition(
-                                         position: Tween<Offset>(
-                                           begin: const Offset(1.0, 0.0),
-                                           end: Offset.zero,
-                                         ).animate(CurvedAnimation(
-                                           parent: animation,
-                                           curve: Curves.easeInOut,
-                                         )),
-                                         child: child,
-                                       );
-                                     },
-                                     transitionDuration: const Duration(milliseconds: 300),
-                                   ),
-                                 );
-                               });
-                             },
-                             child: const Text(
-                               'Next',
-                               style: TextStyle(
-                                 fontSize: 22,
-                                 fontWeight: FontWeight.w600,
-                                 color: Colors.white,
-                                 fontFamily: 'Inter',
-                               ),
-                             ),
-                           ),
-                         ),
-                       );
-                     },
-                   ),
-                 ),
-               ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32),
+              child: AnimatedBuilder(
+                animation: _buttonAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _buttonAnimation.value,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD12A),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 6,
+                          shadowColor: Colors.black.withValues(alpha: 0.2),
+                        ),
+                        onPressed: () {
+                          _buttonController.forward().then((_) {
+                            _buttonController.reverse();
+                            Navigator.of(context).push(
+                              PageRouteBuilder(
+                                pageBuilder: (context, animation, secondaryAnimation) => ProfessionalResultScreen(
+                                  age: widget.age,
+                                  usageIndex: selected,
+                                ),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  return SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(1.0, 0.0),
+                                      end: Offset.zero,
+                                    ).animate(CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeInOut,
+                                    )),
+                                    child: child,
+                                  );
+                                },
+                                transitionDuration: const Duration(milliseconds: 300),
+                              ),
+                            );
+                          });
+                        },
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
         ),
       ),
@@ -672,14 +668,7 @@ class _ProfessionalResultScreenState extends State<ProfessionalResultScreen>
                         margin: const EdgeInsets.symmetric(horizontal: 24),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(30),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFFFFD93D),
-                              Color(0xFFFFB800),
-                            ],
-                          ),
+                          color: const Color(0xFFFFD12A),
                           boxShadow: [
                             BoxShadow(
                                                              color: Colors.black.withValues(alpha: 0.15),

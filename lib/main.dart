@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:math' as math;
-import 'dart:math';
 import 'dart:async';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'onboarding_screens.dart';
 import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:rive/rive.dart';
+import 'package:rive/rive.dart' hide RadialGradient;
 
 // Returns 75% of the input years, rounded to the nearest integer
 int getRegainableYears(double years) {
@@ -183,7 +183,7 @@ class _FocusScreenState extends State<FocusScreen> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const TimerScreen()),
+                            MaterialPageRoute(builder: (context) => const TimerSetupScreen()),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -215,7 +215,335 @@ class _FocusScreenState extends State<FocusScreen> {
   }
 }
 
-// Timer Screen - Simple timer without Rive animation
+// Advanced Timer Setup Screen with iOS-like 3D wheels and ripple hold button
+class TimerSetupScreen extends StatefulWidget {
+  const TimerSetupScreen({super.key});
+  
+  @override
+  State<TimerSetupScreen> createState() => _TimerSetupScreenState();
+}
+
+class _TimerSetupScreenState extends State<TimerSetupScreen> with TickerProviderStateMixin {
+  int selectedHours = 0;
+  int selectedMinutes = 25; // Default to 25 minutes (Pomodoro)
+  
+  // No longer needed - removed ripple animation controllers
+  
+  @override
+  void initState() {
+    super.initState();
+    // Simplified - no animation controllers needed for simple start button
+  }
+  
+  @override
+  void dispose() {
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Set Timer',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+            fontFamily: 'Inter',
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            
+            // Time display
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${selectedHours.toString().padLeft(2, '0')}:${selectedMinutes.toString().padLeft(2, '0')}',
+                    style: const TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w300,
+                      color: Color(0xFFFF6B35),
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // iOS-like 3D Picker wheels
+            Expanded(
+              child: Container(
+                height: 320,
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Hours picker
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Hours',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black54,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: CupertinoPicker(
+                              backgroundColor: Colors.transparent,
+                              itemExtent: 45,
+                              diameterRatio: 0.8, // More 3D effect
+                              squeeze: 1.2, // Increased squeeze for 3D effect
+                              onSelectedItemChanged: (value) {
+                                setState(() {
+                                  selectedHours = value;
+                                });
+                                HapticFeedback.selectionClick();
+                              },
+                              scrollController: FixedExtentScrollController(
+                                initialItem: selectedHours,
+                              ),
+                              children: List.generate(24, (index) {
+                                return Center(
+                                  child: Text(
+                                    index.toString().padLeft(2, '0'),
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.black87,
+                                      fontFamily: 'Inter',
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Divider
+                    Container(
+                      width: 1,
+                      height: 240,
+                      color: Colors.grey.shade200,
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                    ),
+                    
+                    // Minutes picker
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Minutes',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black54,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: CupertinoPicker(
+                              backgroundColor: Colors.transparent,
+                              itemExtent: 45,
+                              diameterRatio: 0.8, // More 3D effect
+                              squeeze: 1.2, // Increased squeeze for 3D effect
+                              onSelectedItemChanged: (value) {
+                                setState(() {
+                                  selectedMinutes = value;
+                                });
+                                HapticFeedback.selectionClick();
+                              },
+                              scrollController: FixedExtentScrollController(
+                                initialItem: selectedMinutes,
+                              ),
+                              children: List.generate(60, (index) {
+                                return Center(
+                                  child: Text(
+                                    index.toString().padLeft(2, '0'),
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.black87,
+                                      fontFamily: 'Inter',
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Quick preset buttons
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Quick Presets',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildPresetButton('5 min', 0, 5),
+                      const SizedBox(width: 12),
+                      _buildPresetButton('15 min', 0, 15),
+                      const SizedBox(width: 12),
+                      _buildPresetButton('25 min', 0, 25),
+                      const SizedBox(width: 12),
+                      _buildPresetButton('1 hour', 1, 0),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Start button
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B35),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FocusTimerScreen(
+                        durationMinutes: (selectedHours * 60) + selectedMinutes,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'START',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildPresetButton(String label, int hours, int minutes) {
+    final isSelected = selectedHours == hours && selectedMinutes == minutes;
+    
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            selectedHours = hours;
+            selectedMinutes = minutes;
+          });
+          HapticFeedback.selectionClick();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: isSelected ? Border.all(
+              color: const Color(0xFFFF6B35),
+              width: 2,
+            ) : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isSelected ? const Color(0xFFFF6B35) : Colors.black54,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Simple Timer Screen
 class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
   
@@ -1250,11 +1578,14 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                             ),
                           ] : null,
                         ),
-                        child: SvgPicture.asset(
-                          _getSvgAssetForLevel(isCompleted, isCurrentLevel),
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.contain,
+                        child: Icon(
+                          isCompleted ? Icons.check_circle : 
+                          isCurrentLevel ? Icons.radio_button_checked : 
+                          Icons.radio_button_unchecked,
+                          size: 40,
+                          color: isCompleted ? Colors.green : 
+                                 isCurrentLevel ? const Color(0xFFFFD700) : 
+                                 Colors.grey,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -1398,9 +1729,19 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
   late AnimationController _expandController;
   late AnimationController _glowController;
   
+  // 3 Continuous ripple controllers
+  late AnimationController _rippleController1;
+  late AnimationController _rippleController2;
+  late AnimationController _rippleController3;
+  
   late Animation<double> _holdAnimation;
   late Animation<double> _expandAnimation;
   late Animation<double> _glowAnimation;
+  
+  // 3 Continuous ripple animations
+  late Animation<double> _rippleAnimation1;
+  late Animation<double> _rippleAnimation2;
+  late Animation<double> _rippleAnimation3;
   
   bool _isHolding = false;
   bool _isCompleted = false;
@@ -1427,6 +1768,22 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
       vsync: this,
     );
 
+    // 3 Continuous ripple controllers with staggered timing
+    _rippleController1 = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    
+    _rippleController2 = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    
+    _rippleController3 = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
     _holdAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_holdController);
     _expandAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _expandController, curve: Curves.easeInOut),
@@ -1434,6 +1791,31 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
     _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeOut),
     );
+
+    // Create ripple animations
+    _rippleAnimation1 = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _rippleController1,
+      curve: Curves.easeOut,
+    ));
+    
+    _rippleAnimation2 = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _rippleController2,
+      curve: Curves.easeOut,
+    ));
+    
+    _rippleAnimation3 = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _rippleController3,
+      curve: Curves.easeOut,
+    ));
 
     _holdController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -1456,6 +1838,9 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
     _holdController.dispose();
     _expandController.dispose();
     _glowController.dispose();
+    _rippleController1.dispose();
+    _rippleController2.dispose();
+    _rippleController3.dispose();
     super.dispose();
   }
 
@@ -1464,7 +1849,16 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
       _isHolding = true;
     });
     _holdController.forward();
-    _glowController.forward(); // Continuous forward animation
+    _glowController.repeat(reverse: true);
+    
+    // Start 3 continuous ripples with staggered timing
+    _rippleController1.repeat();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (_isHolding) _rippleController2.repeat();
+    });
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (_isHolding) _rippleController3.repeat();
+    });
   }
 
   void _stopHold() {
@@ -3154,290 +3548,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
-class TimerSetupScreen extends StatefulWidget {
-  const TimerSetupScreen({super.key});
-
-  @override
-  State<TimerSetupScreen> createState() => _TimerSetupScreenState();
-}
-
-class _TimerSetupScreenState extends State<TimerSetupScreen> {
-  int timerMinutes = 25;
-  final TextEditingController _timerController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _timerController.text = timerMinutes.toString();
-  }
-
-  @override
-  void dispose() {
-    _timerController.dispose();
-    super.dispose();
-  }
-
-  void incrementTimer() {
-    setState(() {
-      timerMinutes++;
-      _timerController.text = timerMinutes.toString();
-    });
-  }
-
-  void decrementTimer() {
-    setState(() {
-      if (timerMinutes > 1) {
-        timerMinutes--;
-        _timerController.text = timerMinutes.toString();
-      }
-    });
-  }
-
-  void _showCustomTimerDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Set Custom Timer',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Inter',
-            ),
-          ),
-          content: TextField(
-            controller: _timerController,
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Inter',
-            ),
-            decoration: InputDecoration(
-              hintText: 'Enter minutes',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            onChanged: (value) {
-              int? newValue = int.tryParse(value);
-              if (newValue != null && newValue > 0) {
-                timerMinutes = newValue;
-              }
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  _timerController.text = timerMinutes.toString();
-                });
-              },
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                int? newValue = int.tryParse(_timerController.text);
-                if (newValue != null && newValue > 0) {
-                  setState(() {
-                    timerMinutes = newValue;
-                  });
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'Set',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            children: [
-              // Header with hamburger menu and app name
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0, bottom: 32.0),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.menu,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'StudyBuddy',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const Spacer(),
-              
-              // Timer controls - centered both horizontally and vertically
-              Expanded(
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Minus button
-                      GestureDetector(
-                        onTap: decrementTimer,
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Color(0xFFFFD700),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0xFFFFD700).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.remove,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(width: 40),
-                      
-                      // Timer display - tappable for custom input
-                      GestureDetector(
-                        onTap: _showCustomTimerDialog,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: Text(
-                            '$timerMinutes',
-                            style: TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(width: 40),
-                      
-                      // Plus button
-                      GestureDetector(
-                        onTap: incrementTimer,
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Color(0xFFFFD700),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0xFFFFD700).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              const Spacer(),
-              
-              // Start button
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => FocusTimerScreen(durationMinutes: timerMinutes),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: double.infinity,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: Color(0xFFFFD700),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0xFFFFD700).withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Start',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class FailScreenOverlay extends StatefulWidget {
   final int remainingMinutes;
