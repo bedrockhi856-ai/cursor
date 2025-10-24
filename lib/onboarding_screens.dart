@@ -1,5 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'main.dart';
+
+// Custom input formatter to restrict age input to 10-100 range
+class AgeInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Allow empty input
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Remove any non-digit characters (safety check)
+    final cleanText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanText != newValue.text) {
+      return oldValue;
+    }
+
+    // Try to parse the new value
+    final int? parsedValue = int.tryParse(cleanText);
+    
+    // If it's not a valid number, reject the input
+    if (parsedValue == null) {
+      return oldValue;
+    }
+
+    // Reject leading zeros for multi-digit numbers
+    if (cleanText.length > 1 && cleanText.startsWith('0')) {
+      return oldValue;
+    }
+
+    // For single digit input, allow any digit 1-9 (could lead to valid ages)
+    if (cleanText.length == 1) {
+      if (parsedValue >= 1 && parsedValue <= 9) {
+        return TextEditingValue(
+          text: cleanText,
+          selection: TextSelection.collapsed(offset: cleanText.length),
+        );
+      }
+      return oldValue;
+    }
+    
+    // For 2 digits, enforce the 10-99 range
+    if (cleanText.length == 2) {
+      if (parsedValue >= 10 && parsedValue <= 99) {
+        return TextEditingValue(
+          text: cleanText,
+          selection: TextSelection.collapsed(offset: cleanText.length),
+        );
+      }
+      return oldValue;
+    }
+    
+    // For 3 digits, only allow 100
+    if (cleanText.length == 3) {
+      if (parsedValue == 100) {
+        return TextEditingValue(
+          text: cleanText,
+          selection: TextSelection.collapsed(offset: cleanText.length),
+        );
+      }
+      return oldValue;
+    }
+    
+    // Reject anything longer than 3 digits
+    return oldValue;
+  }
+}
 
 class AgeScreen extends StatefulWidget {
   const AgeScreen({Key? key}) : super(key: key);
@@ -41,6 +111,15 @@ class _AgeScreenState extends State<AgeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  bool _isValidAge() {
+    if (age.isEmpty) return false;
+    final ageInt = int.tryParse(age);
+    if (ageInt == null) return false;
+    // Since input is restricted by formatter, we only need to check if it's not empty and valid
+    return ageInt >= 10 && ageInt <= 100;
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,16 +133,16 @@ class _AgeScreenState extends State<AgeScreen> with TickerProviderStateMixin {
               const SizedBox(height: 80),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0),
-                                 child: Text(
+                child: Text(
                    'What is your age?',
                    textAlign: TextAlign.center,
                    style: TextStyle(
                     fontSize: 32,
-                     fontWeight: FontWeight.w600,
-                     fontFamily: 'Inter',
-                     color: Colors.black,
-                   ),
-                 ),
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Inter',
+                    color: Colors.black,
+                  ),
+                ),
               ),
               const SizedBox(height: 100),
               Center(
@@ -87,6 +166,9 @@ class _AgeScreenState extends State<AgeScreen> with TickerProviderStateMixin {
                       focusNode: _focusNode,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
+                      inputFormatters: [
+                        AgeInputFormatter(),
+                      ],
                                              style: const TextStyle(
                          fontSize: 24,
                          fontWeight: FontWeight.bold,
@@ -96,6 +178,10 @@ class _AgeScreenState extends State<AgeScreen> with TickerProviderStateMixin {
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: '00',
+                        errorText: null,
+                        helperText: null,
+                        errorStyle: TextStyle(height: 0, color: Colors.transparent),
+                        helperStyle: TextStyle(height: 0, color: Colors.transparent),
                                                  hintStyle: TextStyle(
                            color: Colors.black54,
                            fontSize: 24,
@@ -112,9 +198,20 @@ class _AgeScreenState extends State<AgeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
+              // Hidden validation status - maintains functionality without showing message
+              Opacity(
+                opacity: 0.0,
+                child: Text(
+                  _isValidAge() ? '' : 'Invalid age',
+                  style: const TextStyle(fontSize: 0.1),
+                ),
+              ),
               const Spacer(),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32),
+                padding: const EdgeInsets.only(bottom: 40),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: AnimatedBuilder(
                   animation: _buttonAnimation,
                   builder: (context, child) {
@@ -132,7 +229,7 @@ class _AgeScreenState extends State<AgeScreen> with TickerProviderStateMixin {
                             elevation: 6,
                             shadowColor: Colors.black.withValues(alpha: 0.2),
                           ),
-                          onPressed: age.isNotEmpty ? () {
+                          onPressed: _isValidAge() ? () {
                             _buttonController.forward().then((_) {
                               _buttonController.reverse();
                               Navigator.of(context).push(
@@ -168,6 +265,7 @@ class _AgeScreenState extends State<AgeScreen> with TickerProviderStateMixin {
                       ),
                     );
                   },
+                ),
                 ),
               ),
             ],
@@ -250,6 +348,72 @@ class _PhoneUsageScreenState extends State<PhoneUsageScreen> with TickerProvider
                  ),
                ),
             const SizedBox(height: 30), // Balanced spacing
+            
+            // Next button moved up here, before the options
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: AnimatedBuilder(
+                animation: _buttonAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _buttonAnimation.value,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD12A),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 6,
+                          shadowColor: Colors.black.withValues(alpha: 0.2),
+                        ),
+                        onPressed: () {
+                          _buttonController.forward().then((_) {
+                            _buttonController.reverse();
+                            Navigator.of(context).push(
+                              PageRouteBuilder(
+                                pageBuilder: (context, animation, secondaryAnimation) => ProfessionalResultScreen(
+                                  age: widget.age,
+                                  usageIndex: selected,
+                                ),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  return SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(1.0, 0.0),
+                                      end: Offset.zero,
+                                    ).animate(CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeInOut,
+                                    )),
+                                    child: child,
+                                  );
+                                },
+                                transitionDuration: const Duration(milliseconds: 300),
+                              ),
+                            );
+                          });
+                        },
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Options moved below the button
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -258,70 +422,6 @@ class _PhoneUsageScreenState extends State<PhoneUsageScreen> with TickerProvider
                 ],
               ),
             ),
-            const SizedBox(height: 10), // Minimal spacing
-               Padding(
-                 padding: const EdgeInsets.only(bottom: 10),
-                 child: Padding(
-                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                   child: AnimatedBuilder(
-                     animation: _buttonAnimation,
-                     builder: (context, child) {
-                       return Transform.scale(
-                         scale: _buttonAnimation.value,
-                         child: SizedBox(
-                           width: double.infinity,
-                           height: 60,
-                           child: ElevatedButton(
-                             style: ElevatedButton.styleFrom(
-                               backgroundColor: const Color(0xFFFFD12A),
-                               shape: RoundedRectangleBorder(
-                                 borderRadius: BorderRadius.circular(30),
-                               ),
-                               elevation: 6,
-                               shadowColor: Colors.black.withValues(alpha: 0.2),
-                             ),
-                             onPressed: () {
-                               _buttonController.forward().then((_) {
-                                 _buttonController.reverse();
-                                 Navigator.of(context).push(
-                                   PageRouteBuilder(
-                                     pageBuilder: (context, animation, secondaryAnimation) => ProfessionalResultScreen(
-                                       age: widget.age,
-                                       usageIndex: selected,
-                                     ),
-                                     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                       return SlideTransition(
-                                         position: Tween<Offset>(
-                                           begin: const Offset(1.0, 0.0),
-                                           end: Offset.zero,
-                                         ).animate(CurvedAnimation(
-                                           parent: animation,
-                                           curve: Curves.easeInOut,
-                                         )),
-                                         child: child,
-                                       );
-                                     },
-                                     transitionDuration: const Duration(milliseconds: 300),
-                                   ),
-                                 );
-                               });
-                             },
-                             child: const Text(
-                               'Next',
-                               style: TextStyle(
-                                 fontSize: 22,
-                                 fontWeight: FontWeight.w600,
-                                 color: Colors.white,
-                                 fontFamily: 'Inter',
-                               ),
-                             ),
-                           ),
-                         ),
-                       );
-                     },
-                   ),
-                 ),
-               ),
         ],
         ),
       ),
