@@ -16,11 +16,13 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
   late AnimationController _switchController;
   late AnimationController _backgroundController;
   late AnimationController _holdController;
+  late AnimationController _rippleController;
   
   late Animation<double> _headingAnimation;
   late Animation<double> _switchAnimation;
   late Animation<double> _backgroundAnimation;
   late Animation<double> _holdAnimation;
+  late Animation<double> _rippleAnimation;
   
   @override
   void initState() {
@@ -43,6 +45,11 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
     
     _holdController = AnimationController(
       duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    
+    _rippleController = AnimationController(
+      duration: const Duration(milliseconds: 2500),
       vsync: this,
     );
     
@@ -78,8 +85,17 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
       curve: Curves.easeInOut,
     ));
     
+    _rippleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _rippleController,
+      curve: Curves.linear,
+    ));
+    
     _headingController.forward();
     _holdController.repeat(reverse: true);
+    _rippleController.repeat();
   }
   
   @override
@@ -88,6 +104,7 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
     _switchController.dispose();
     _backgroundController.dispose();
     _holdController.dispose();
+    _rippleController.dispose();
     super.dispose();
   }
   
@@ -100,13 +117,19 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final int regainYears = widget.regainableYears ?? 3;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final safeAreaTop = MediaQuery.of(context).padding.top;
+    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
+    
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: AnimatedBuilder(
         animation: Listenable.merge([
           _headingAnimation,
           _switchAnimation,
           _backgroundAnimation,
           _holdAnimation,
+          _rippleAnimation,
         ]),
         builder: (context, child) {
           return Container(
@@ -121,48 +144,58 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
               ),
             ),
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Stack(
                   children: [
-                    const SizedBox(height: 60),
-                    AnimatedOpacity(
-                      opacity: _headingAnimation.value,
-                      duration: const Duration(milliseconds: 600),
-                      child: Transform.translate(
-                        offset: Offset(0, 20 * (1 - _headingAnimation.value)),
-                        child: Text(
-                          'Want to regain $regainYears years\nof your life?',
-                          style: const TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontFamily: 'Inter',
-                            height: 1.5,
+                    // Heading at top - fixed position
+                    Positioned(
+                      top: 60,
+                      left: 24,
+                      right: 24,
+                      child: AnimatedOpacity(
+                        opacity: _headingAnimation.value,
+                        duration: const Duration(milliseconds: 600),
+                        child: Transform.translate(
+                          offset: Offset(0, 20 * (1 - _headingAnimation.value)),
+                          child: Text(
+                            'Want to regain $regainYears years\nof your life?',
+                            style: const TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontFamily: 'Inter',
+                              height: 1.5,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    const Spacer(flex: 2),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                    
+                    // Freedom Switch box in middle - fixed position
+                    Positioned(
+                      top: (screenHeight - safeAreaTop - safeAreaBottom) * 0.4 + 45,
+                      left: 24,
+                      right: 24,
+                      child: IgnorePointer(
+                        ignoring: false,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.95),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
+                          child: Row(
                             children: [
                               AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),
@@ -177,6 +210,7 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       'Freedom Switch',
@@ -198,67 +232,71 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
                                   ],
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    isSwitchOn = !isSwitchOn;
-                                  });
-                                  if (isSwitchOn) {
-                                    _switchController.forward();
-                                    _backgroundController.forward();
-                                  } else {
-                                    _switchController.reverse();
-                                    _backgroundController.reverse();
-                                  }
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  width: 48,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: isSwitchOn ? Colors.green[600] : Colors.grey[600],
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: (isSwitchOn ? Colors.green[600] : Colors.grey[600])!.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: AnimatedAlign(
-                                    duration: const Duration(milliseconds: 300),
-                                    alignment: isSwitchOn ? Alignment.centerRight : Alignment.centerLeft,
-                                    curve: Curves.easeOutBack,
-                                    child: Container(
-                                      width: 24,
-                                      height: 24,
-                                      margin: EdgeInsets.only(
-                                        left: isSwitchOn ? 22 : 2,
-                                        right: isSwitchOn ? 2 : 22,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 1),
-                                          ),
-                                        ],
-                                      ),
+                              Container(
+                                width: 48,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[600],
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey[600]!.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Container(
+                                    width: 24,
+                                    height: 24,
+                                    margin: const EdgeInsets.only(left: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    Center(
+                    
+                    // Ripple 1 - around hold button
+                    Positioned(
+                      bottom: 55 + 60 - 80,
+                      left: (MediaQuery.of(context).size.width - 120) / 2 + 60 - 80,
+                      child: _buildRipple(0.0, 160),
+                    ),
+                    
+                    // Ripple 2 - around hold button
+                    Positioned(
+                      bottom: 55 + 60 - 100,
+                      left: (MediaQuery.of(context).size.width - 120) / 2 + 60 - 100,
+                      child: _buildRipple(0.33, 200),
+                    ),
+                    
+                    // Ripple 3 - around hold button
+                    Positioned(
+                      bottom: 55 + 60 - 120,
+                      left: (MediaQuery.of(context).size.width - 120) / 2 + 60 - 120,
+                      child: _buildRipple(0.66, 240),
+                    ),
+                    
+                    // Hold button at bottom - fixed position
+                    Positioned(
+                      bottom: 55,
+                      left: (MediaQuery.of(context).size.width - 120) / 2,
                       child: HoldToBeginButton(
                         onHoldComplete: onHoldComplete,
                         text: 'hold',
@@ -267,13 +305,34 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
                         height: 120,
                       ),
                     ),
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+  
+  Widget _buildRipple(double delay, double size) {
+    // Calculate the ripple animation value based on delay
+    double rippleValue = (_rippleAnimation.value + delay) % 1.0;
+    double scale = 0.7 + (rippleValue * 0.3);
+    double opacity = 0.4 * (1.0 - rippleValue);
+    
+    return Transform.scale(
+      scale: scale,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: const Color(0xFFFF6B35).withOpacity(opacity),
+            width: 2.5,
+          ),
+        ),
       ),
     );
   }

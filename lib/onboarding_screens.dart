@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'main.dart';
+import 'screens/onboarding/first_screen.dart';
+import 'utils/helpers.dart';
 
 // Custom input formatter to restrict age input to 10-100 range
 class AgeInputFormatter extends TextInputFormatter {
@@ -124,153 +126,154 @@ class _AgeScreenState extends State<AgeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Main content
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 80),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.0),
-                child: Text(
-                   'What is your age?',
-                   textAlign: TextAlign.center,
-                   style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Inter',
-                    color: Colors.black,
-                  ),
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
                 ),
-              ),
-              const SizedBox(height: 100),
-              Center(
-                child: Container(
-                  width: 120,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(35),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      inputFormatters: [
-                        AgeInputFormatter(),
-                      ],
-                                             style: const TextStyle(
-                         fontSize: 24,
-                         fontWeight: FontWeight.bold,
-                         color: Colors.black,
-                         fontFamily: 'Inter',
-                       ),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: '00',
-                        errorText: null,
-                        helperText: null,
-                        errorStyle: TextStyle(height: 0, color: Colors.transparent),
-                        helperStyle: TextStyle(height: 0, color: Colors.transparent),
-                                                 hintStyle: TextStyle(
-                           color: Colors.black54,
-                           fontSize: 24,
-                           fontWeight: FontWeight.bold,
-                         ),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      onChanged: (val) {
-                        setState(() {
-                          age = val;
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Hidden validation status - maintains functionality without showing message
-              Opacity(
-                opacity: 0.0,
-                child: Text(
-                  _isValidAge() ? '' : 'Invalid age',
-                  style: const TextStyle(fontSize: 0.1),
-                ),
-              ),
-              const Spacer(),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: AnimatedBuilder(
-                  animation: _buttonAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _buttonAnimation.value,
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 60,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFD12A),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            elevation: 6,
-                            shadowColor: Colors.black.withValues(alpha: 0.2),
-                          ),
-                          onPressed: _isValidAge() ? () {
-                            _buttonController.forward().then((_) {
-                              _buttonController.reverse();
-                              Navigator.of(context).push(
-                                PageRouteBuilder(
-                                  pageBuilder: (context, animation, secondaryAnimation) => PhoneUsageScreen(age: age),
-                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                    return SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(1.0, 0.0),
-                                        end: Offset.zero,
-                                      ).animate(CurvedAnimation(
-                                        parent: animation,
-                                        curve: Curves.easeInOut,
-                                      )),
-                                      child: child,
-                                    );
-                                  },
-                                  transitionDuration: const Duration(milliseconds: 300),
-                                ),
-                              );
-                            });
-                          } : null,
-                          child: const Text(
-                            'Next',
-                            style: TextStyle(
-                              fontSize: 22,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      children: [
+                        const SizedBox(height: 80),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 24.0),
+                          child: Text(
+                             'What is your age?',
+                             textAlign: TextAlign.center,
+                             style: TextStyle(
+                              fontSize: 32,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
                               fontFamily: 'Inter',
+                              color: Colors.black,
                             ),
                           ),
                         ),
+                        const SizedBox(height: 100),
+                        Center(
+                          child: Container(
+                            width: 120,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(35),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: TextField(
+                                controller: _controller,
+                                focusNode: _focusNode,
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.center,
+                                inputFormatters: [
+                                  AgeInputFormatter(),
+                                ],
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                  fontFamily: 'Inter',
+                                ),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText: '00',
+                                  errorText: null,
+                                  helperText: null,
+                                  errorStyle: TextStyle(height: 0, color: Colors.transparent),
+                                  helperStyle: TextStyle(height: 0, color: Colors.transparent),
+                                  hintStyle: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onChanged: (val) {
+                                  setState(() {
+                                    age = val;
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+                      child: AnimatedBuilder(
+                        animation: _buttonAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _buttonAnimation.value,
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 60,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFFD12A),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  elevation: 6,
+                                  shadowColor: Colors.black.withValues(alpha: 0.2),
+                                ),
+                                onPressed: _isValidAge() ? () {
+                                  _buttonController.forward().then((_) {
+                                    _buttonController.reverse();
+                                    Navigator.of(context).push(
+                                      PageRouteBuilder(
+                                        pageBuilder: (context, animation, secondaryAnimation) => PhoneUsageScreen(age: age),
+                                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                          return SlideTransition(
+                                            position: Tween<Offset>(
+                                              begin: const Offset(1.0, 0.0),
+                                              end: Offset.zero,
+                                            ).animate(CurvedAnimation(
+                                              parent: animation,
+                                              curve: Curves.easeInOut,
+                                            )),
+                                            child: child,
+                                          );
+                                        },
+                                        transitionDuration: const Duration(milliseconds: 300),
+                                      ),
+                                    );
+                                  });
+                                } : null,
+                                child: const Text(
+                                  'Next',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontFamily: 'Inter',
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -329,100 +332,107 @@ class _PhoneUsageScreenState extends State<PhoneUsageScreen> with TickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-            const SizedBox(height: 40), // Much smaller top spacing
-               const Padding(
-                 padding: EdgeInsets.symmetric(horizontal: 24.0),
-                 child: Text(
-                   'How much time do you spend on your phone?',
-                   textAlign: TextAlign.center,
-                   style: TextStyle(
-                     fontSize: 28,
-                     fontWeight: FontWeight.w600,
-                     fontFamily: 'Inter',
-                     color: Colors.black,
-                   ),
-                 ),
-               ),
-            const SizedBox(height: 30), // Balanced spacing
-            
-            // Next button moved up here, before the options
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: AnimatedBuilder(
-                animation: _buttonAnimation,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _buttonAnimation.value,
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 60,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFD12A),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 80),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 24.0),
+                          child: Text(
+                            'How much time do you spend on your phone?',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Inter',
+                              color: Colors.black,
+                            ),
                           ),
-                          elevation: 6,
-                          shadowColor: Colors.black.withValues(alpha: 0.2),
                         ),
-                        onPressed: () {
-                          _buttonController.forward().then((_) {
-                            _buttonController.reverse();
-                            Navigator.of(context).push(
-                              PageRouteBuilder(
-                                pageBuilder: (context, animation, secondaryAnimation) => ProfessionalResultScreen(
-                                  age: widget.age,
-                                  usageIndex: selected,
+                        const SizedBox(height: 150),
+                        // Options section
+                        ...List.generate(options.length, (i) => _buildOption(i)),
+                      ],
+                    ),
+                    // Next button at the bottom
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 40, left: 24.0, right: 24.0),
+                      child: AnimatedBuilder(
+                        animation: _buttonAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _buttonAnimation.value,
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 60,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFFD12A),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  elevation: 6,
+                                  shadowColor: Colors.black.withValues(alpha: 0.2),
                                 ),
-                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                  return SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(1.0, 0.0),
-                                      end: Offset.zero,
-                                    ).animate(CurvedAnimation(
-                                      parent: animation,
-                                      curve: Curves.easeInOut,
-                                    )),
-                                    child: child,
-                                  );
+                                onPressed: () {
+                                  _buttonController.forward().then((_) {
+                                    _buttonController.reverse();
+                                    Navigator.of(context).push(
+                                      PageRouteBuilder(
+                                        pageBuilder: (context, animation, secondaryAnimation) => ProfessionalResultScreen(
+                                          age: widget.age,
+                                          usageIndex: selected,
+                                        ),
+                                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                          return SlideTransition(
+                                            position: Tween<Offset>(
+                                              begin: const Offset(1.0, 0.0),
+                                              end: Offset.zero,
+                                            ).animate(CurvedAnimation(
+                                              parent: animation,
+                                              curve: Curves.easeInOut,
+                                            )),
+                                            child: child,
+                                          );
+                                        },
+                                        transitionDuration: const Duration(milliseconds: 300),
+                                      ),
+                                    );
+                                  });
                                 },
-                                transitionDuration: const Duration(milliseconds: 300),
+                                child: const Text(
+                                  'Next',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontFamily: 'Inter',
+                                  ),
+                                ),
                               ),
-                            );
-                          });
+                            ),
+                          );
                         },
-                        child: const Text(
-                          'Next',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            fontFamily: 'Inter',
-                          ),
-                        ),
                       ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Options moved below the button
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ...List.generate(options.length, (i) => _buildOption(i)),
-                ],
-              ),
-            ),
-        ],
+            );
+          },
         ),
       ),
     );
@@ -439,7 +449,8 @@ class _PhoneUsageScreenState extends State<PhoneUsageScreen> with TickerProvider
           });
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
           width: double.infinity,
           height: 60,
           decoration: BoxDecoration(
@@ -460,7 +471,9 @@ class _PhoneUsageScreenState extends State<PhoneUsageScreen> with TickerProvider
             ],
           ),
           child: Center(
-            child: Transform.scale(
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
               scale: isSelected ? 1.05 : 1.0,
               child: Text(
                 options[i],
@@ -756,68 +769,44 @@ class _ProfessionalResultScreenState extends State<ProfessionalResultScreen>
           
 
 
-              // Yellow button with gradient and ripple effect
+              // Yellow button matching previous screens
               Positioned(
                 bottom: 40,
-                left: 0,
-                right: 0,
+                left: 24,
+                right: 24,
                 child: AnimatedBuilder(
                   animation: _animationController,
                   builder: (context, child) {
                     return Transform.scale(
                       scale: _scaleAnimation.value,
-                      child: Container(
+                      child: SizedBox(
                         width: double.infinity,
                         height: 60,
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFFFFD93D),
-                              Color(0xFFFFB800),
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                                                             color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                              spreadRadius: 0,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFD12A),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
                             ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(30),
-                            onTapDown: (_) => _animationController.forward(),
-                            onTapUp: (_) => _animationController.reverse(),
-                            onTapCancel: () => _animationController.reverse(),
-                            onTap: () {
+                            elevation: 6,
+                            shadowColor: Colors.black.withValues(alpha: 0.2),
+                          ),
+                          onPressed: () {
+                            _animationController.forward().then((_) {
+                              _animationController.reverse();
                               final regainableYears = getRegainableYears(double.tryParse(resultStr) ?? 0);
                               Navigator.of(context).pushReplacement(
                                 MaterialPageRoute(builder: (_) => FirstScreen(regainableYears: regainableYears)),
                               );
-                              Future.delayed(const Duration(seconds: 2), () {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(builder: (_) => const SecondScreen()),
-                                );
-                              });
-                            },
-                            child: Center(
-                              child: Text(
-                                'I want my time back',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Inter',
-                                  color: Colors.white,
-                                  letterSpacing: 0.1,
-                                ),
-                              ),
+                            });
+                          },
+                          child: const Text(
+                            'I want my time back',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              fontFamily: 'Inter',
                             ),
                           ),
                         ),

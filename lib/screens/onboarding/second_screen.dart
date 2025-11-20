@@ -59,13 +59,14 @@ class _SecondScreenState extends State<SecondScreen> with TickerProviderStateMix
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 60),
-                // Title - centered with fade in
-                AnimatedBuilder(
+          child: Stack(
+            children: [
+              // Title - centered with fade in
+              Positioned(
+                top: 60,
+                left: 24,
+                right: 24,
+                child: AnimatedBuilder(
                   animation: _switchAnimation,
                   builder: (context, child) {
                     return Transform.scale(
@@ -94,9 +95,14 @@ class _SecondScreenState extends State<SecondScreen> with TickerProviderStateMix
                     );
                   },
                 ),
-                const Spacer(flex: 2),
-                // Freedom switch card - enhanced with animations
-                AnimatedBuilder(
+              ),
+              
+              // Freedom switch card - same position as FirstScreen
+              Positioned(
+                top: MediaQuery.of(context).size.height * 0.4 + 60,
+                left: 24,
+                right: 24,
+                child: AnimatedBuilder(
                   animation: _glowAnimation,
                   builder: (context, child) {
                     return Transform.scale(
@@ -115,82 +121,79 @@ class _SecondScreenState extends State<SecondScreen> with TickerProviderStateMix
                             ),
                           ],
                         ),
-                        child: Column(
+                        child: Row(
                           children: [
-                            Row(
-                              children: [
-                                AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 300),
-                                  child: Icon(
-                                    Icons.lock_open,
-                                    key: const ValueKey('unlocked'),
-                                    size: 28,
-                                    color: Colors.green[600],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Freedom Switch',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                          fontFamily: 'Inter',
-                                        ),
-                                      ),
-                                      Text(
-                                        'Your potential is now unlocked!',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.green[600],
-                                          fontFamily: 'Inter',
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Animated toggle switch
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 500),
-                                  width: 48,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: Colors.green[600],
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.green[600]!.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Align(
-                                    alignment: Alignment.centerRight,
-                                    child: Container(
-                                      width: 24,
-                                      height: 24,
-                                      margin: const EdgeInsets.only(right: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 1),
-                                          ),
-                                        ],
-                                      ),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              child: Icon(
+                                Icons.lock_open,
+                                key: const ValueKey('unlocked'),
+                                size: 28,
+                                color: Colors.green[600],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Freedom Switch',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                      fontFamily: 'Inter',
                                     ),
                                   ),
+                                  Text(
+                                    'Your potential is now unlocked!',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.green[600],
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Animated toggle switch
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 500),
+                              width: 48,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: Colors.green[600],
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.green[600]!.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Container(
+                                  width: 24,
+                                  height: 24,
+                                  margin: const EdgeInsets.only(right: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
@@ -198,9 +201,14 @@ class _SecondScreenState extends State<SecondScreen> with TickerProviderStateMix
                     );
                   },
                 ),
-                const Spacer(),
-                // Continue button with enhanced animations
-                AnimatedBuilder(
+              ),
+              
+              // Continue button at bottom
+              Positioned(
+                bottom: 40,
+                left: 24,
+                right: 24,
+                child: AnimatedBuilder(
                   animation: _glowAnimation,
                   builder: (context, child) {
                     return Container(
@@ -242,9 +250,8 @@ class _SecondScreenState extends State<SecondScreen> with TickerProviderStateMix
                     );
                   },
                 ),
-                const SizedBox(height: 40),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
