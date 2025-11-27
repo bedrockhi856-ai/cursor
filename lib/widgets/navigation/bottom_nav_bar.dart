@@ -117,8 +117,12 @@ class BottomNavBar extends StatelessWidget {
     );
   }
 
-  void _handleNavigation(BuildContext context, String label) {
+  void _handleNavigation(BuildContext context, String label) async {
     if (label == currentRoute) return; // Already on this screen
+    
+    // Wait for gesture to complete
+    await Future.delayed(const Duration(milliseconds: 50));
+    if (!context.mounted) return;
     
     // Navigation logic - using named routes would be better in production
     switch (label) {

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
-import '../home/home_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/router/app_router.dart';
+import '../../data/providers/providers.dart';
 
-class CharacterSelectionScreen extends StatefulWidget {
+class CharacterSelectionScreen extends ConsumerStatefulWidget {
   const CharacterSelectionScreen({super.key});
 
   @override
-  State<CharacterSelectionScreen> createState() => _CharacterSelectionScreenState();
+  ConsumerState<CharacterSelectionScreen> createState() => _CharacterSelectionScreenState();
 }
 
-class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> 
+class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScreen> 
     with TickerProviderStateMixin {
   int selectedCharacter = 0;
   
@@ -120,13 +123,28 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
     _pulseController.reset();
   }
 
-  void _onContinueTap() {
+  void _onContinueTap() async {
     _continueButtonController.forward().then((_) {
       _continueButtonController.reverse();
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
     });
+    
+    debugPrint('🎯 CharacterSelection: Starting onboarding completion...');
+    debugPrint('🎯 CharacterSelection: Selected character index: $selectedCharacter');
+    
+    // Save character selection and mark onboarding as complete
+    await ref.read(userProvider.notifier).updateCharacter('character_$selectedCharacter');
+    await ref.read(userProvider.notifier).completeOnboarding();
+    
+    // Debug: Verify save
+    final user = ref.read(userProvider);
+    debugPrint('✅ CharacterSelection: Onboarding complete!');
+    debugPrint('✅ CharacterSelection: User data: age=${user?.age}, character=${user?.characterId}');
+    debugPrint('✅ CharacterSelection: Onboarding flag: ${user?.onboardingCompleted}');
+    
+    if (mounted) {
+      debugPrint('🔄 CharacterSelection: Navigating to home screen...');
+      context.go(AppRoutes.home);
+    }
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
 
 class FocusTimerScreen extends StatefulWidget {
@@ -213,17 +214,21 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
   }
 
   void _showCompletionDialog() {
+    final parentContext = context; // Capture widget's context
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Session Complete!'),
         content: const Text('Great job! You\'ve completed your focus session.'),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
+            onPressed: () async {
+              Navigator.of(dialogContext).pop(); // Close dialog
+              await Future.delayed(const Duration(milliseconds: 100));
+              if (parentContext.mounted) {
+                parentContext.pop(); // Go back using GoRouter
+              }
             },
             child: const Text('Done'),
           ),
@@ -246,8 +251,11 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.black, size: 28),
-                    onPressed: () {
-                      Navigator.of(context).pop();
+                    onPressed: () async {
+                      await Future.delayed(const Duration(milliseconds: 50));
+                      if (context.mounted) {
+                        context.pop();
+                      }
                     },
                   ),
                   const SizedBox(width: 8),

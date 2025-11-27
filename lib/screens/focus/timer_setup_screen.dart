@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'focus_timer_screen.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/router/app_router.dart';
 
 class TimerSetupScreen extends StatefulWidget {
   const TimerSetupScreen({super.key});
@@ -8,531 +10,330 @@ class TimerSetupScreen extends StatefulWidget {
   State<TimerSetupScreen> createState() => _TimerSetupScreenState();
 }
 
-class _TimerSetupScreenState extends State<TimerSetupScreen> with SingleTickerProviderStateMixin {
-  int timerMinutes = 25;
-  final TextEditingController _timerController = TextEditingController();
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-
-  final List<int> presetMinutes = [5, 15, 25, 45, 60, 90];
+class _TimerSetupScreenState extends State<TimerSetupScreen> {
+  Duration _selectedDuration = const Duration(minutes: 25);
+  
+  final List<int> presetMinutes = [25, 40, 60, 90];
+  
+  // Scroll controllers for the pickers
+  late FixedExtentScrollController _hourController;
+  late FixedExtentScrollController _minuteController;
 
   @override
   void initState() {
     super.initState();
-    _timerController.text = timerMinutes.toString();
-    
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
+    _hourController = FixedExtentScrollController(
+      initialItem: _selectedDuration.inHours,
     );
-    
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
+    _minuteController = FixedExtentScrollController(
+      initialItem: _selectedDuration.inMinutes % 60,
     );
-    
-    _fadeController.forward();
   }
 
   @override
   void dispose() {
-    _timerController.dispose();
-    _fadeController.dispose();
+    _hourController.dispose();
+    _minuteController.dispose();
     super.dispose();
-  }
-
-  void incrementTimer() {
-    setState(() {
-      timerMinutes++;
-      _timerController.text = timerMinutes.toString();
-    });
-  }
-
-  void decrementTimer() {
-    setState(() {
-      if (timerMinutes > 1) {
-        timerMinutes--;
-        _timerController.text = timerMinutes.toString();
-      }
-    });
   }
 
   void setPresetMinutes(int minutes) {
     setState(() {
-      timerMinutes = minutes;
-      _timerController.text = timerMinutes.toString();
+      _selectedDuration = Duration(minutes: minutes);
     });
-  }
-
-  void _showCustomTimerDialog() {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Custom Timer',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Inter',
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _timerController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  autofocus: true,
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Inter',
-                    color: Color(0xFF6366F1),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '25',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[300],
-                    ),
-                    suffixText: 'min',
-                    suffixStyle: TextStyle(
-                      fontSize: 20,
-                      color: Colors.grey[600],
-                      fontFamily: 'Inter',
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Color(0xFF6366F1), width: 2),
-                    ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  ),
-                  onChanged: (value) {
-                    int? newValue = int.tryParse(value);
-                    if (newValue != null && newValue > 0) {
-                      timerMinutes = newValue;
-                    }
-                  },
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          setState(() {
-                            _timerController.text = timerMinutes.toString();
-                          });
-                        },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          int? newValue = int.tryParse(_timerController.text);
-                          if (newValue != null && newValue > 0) {
-                            setState(() {
-                              timerMinutes = newValue;
-                            });
-                          }
-                          Navigator.of(context).pop();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Set Timer',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Inter',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    
+    // Animate the wheels to the selected time with smooth animation
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    
+    _hourController.animateToItem(
+      hours,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutCubic,
+    );
+    
+    _minuteController.animateToItem(
+      mins,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutCubic,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF6366F1),
-              Color(0xFF8B5CF6),
-              Color(0xFFA855F7),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_ios_new,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            'Focus Timer',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 44), // Balance the back button
-                    ],
-                  ),
-                ),
-                
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Title
-                      Text(
-                        'How long do you want\nto focus?',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontFamily: 'Inter',
-                          height: 1.3,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 60),
-                      
-                      // Timer Display Circle
-                      Container(
-                        width: 240,
-                        height: 240,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 30,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap: _showCustomTimerDialog,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '$timerMinutes',
-                                        style: TextStyle(
-                                          fontSize: 72,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                          fontFamily: 'Inter',
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Icon(
-                                        Icons.edit,
-                                        color: Colors.white.withOpacity(0.7),
-                                        size: 24,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'minutes',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 50),
-                      
-                      // +/- Buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Minus button
-                          GestureDetector(
-                            onTap: decrementTimer,
-                            child: Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                  width: 2,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.remove,
-                                color: Colors.white,
-                                size: 32,
-                              ),
-                            ),
-                          ),
-                          
-                          const SizedBox(width: 80),
-                          
-                          // Plus button
-                          GestureDetector(
-                            onTap: incrementTimer,
-                            child: Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                  width: 2,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 32,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 50),
-                      
-                      // Preset buttons
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(left: 4, bottom: 12),
-                              child: Text(
-                                'Quick Select',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children: presetMinutes.map((minutes) {
-                                bool isSelected = timerMinutes == minutes;
-                                return GestureDetector(
-                                  onTap: () => setPresetMinutes(minutes),
-                                  child: AnimatedContainer(
-                                    duration: Duration(milliseconds: 200),
-                                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: isSelected 
-                                          ? Colors.white 
-                                          : Colors.white.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? Colors.white
-                                            : Colors.white.withOpacity(0.3),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '${minutes}m',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: isSelected 
-                                            ? Color(0xFF6366F1) 
-                                            : Colors.white,
-                                        fontFamily: 'Inter',
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Start button
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pushReplacement(
-                        PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) =>
-                              FocusTimerScreen(durationMinutes: timerMinutes),
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            );
-                          },
-                          transitionDuration: Duration(milliseconds: 400),
-                        ),
-                      );
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      await Future.delayed(const Duration(milliseconds: 50));
+                      if (context.mounted) context.pop();
                     },
                     child: Container(
-                      width: double.infinity,
-                      height: 60,
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Center(
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.black,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'Set Time',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 44), // Balance the back button
+                ],
+              ),
+            ),
+            
+            // Title below header
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+              child: Text(
+                'How long do you want\nto focus?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  fontFamily: 'Georgia',
+                  height: 1.3,
+                ),
+              ),
+            ),
+            
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // iOS-style Timer Picker with custom hour limit
+                  Transform.translate(
+                    offset: const Offset(15, 0),
+                    child: Center(
+                      child: SizedBox(
+                        height: 220,
+                        width: 340,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              'Start Focus Session',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF6366F1),
-                                fontFamily: 'Inter',
+                            // Hours picker
+                            Expanded(
+                              child: CupertinoPicker(
+                                scrollController: _hourController,
+                                itemExtent: 32,
+                                onSelectedItemChanged: (int value) {
+                                  setState(() {
+                                    _selectedDuration = Duration(
+                                      hours: value,
+                                      minutes: _selectedDuration.inMinutes % 60,
+                                    );
+                                  });
+                                },
+                                children: List<Widget>.generate(7, (int index) {
+                                  return Center(
+                                    child: Text(
+                                      '$index',
+                                      style: const TextStyle(fontSize: 22),
+                                    ),
+                                  );
+                                }),
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.arrow_forward,
-                              color: Color(0xFF6366F1),
-                              size: 22,
+                            const Text(
+                              'hours',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(width: 20),
+                            // Minutes picker
+                            Expanded(
+                              child: CupertinoPicker(
+                                scrollController: _minuteController,
+                                itemExtent: 32,
+                                onSelectedItemChanged: (int value) {
+                                  setState(() {
+                                    _selectedDuration = Duration(
+                                      hours: _selectedDuration.inHours,
+                                      minutes: value,
+                                    );
+                                  });
+                                },
+                                children: List<Widget>.generate(60, (int index) {
+                                  return Center(
+                                    child: Text(
+                                      '$index',
+                                      style: const TextStyle(fontSize: 22),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ),
+                            const Text(
+                              'min',
+                              style: TextStyle(fontSize: 16),
                             ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  
+                  const SizedBox(height: 48),
+                  
+                  // Preset buttons - Material Design 3 style
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Quick presets',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: presetMinutes.map((minutes) {
+                            bool isSelected = _selectedDuration.inMinutes == minutes;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => setPresetMinutes(minutes),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeOutCubic,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                                    decoration: BoxDecoration(
+                                      color: isSelected 
+                                          ? const Color(0xFFFFD12A)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? const Color(0xFFFFD12A)
+                                            : Colors.grey.shade300,
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: isSelected ? [
+                                        BoxShadow(
+                                          color: const Color(0xFFFFD12A).withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ] : [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.04),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      '${minutes} min',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                        color: isSelected 
+                                            ? Colors.white 
+                                            : Colors.grey[800],
+                                        fontFamily: 'Inter',
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            
+            // Start button
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: GestureDetector(
+                onTap: () async {
+                  if (_selectedDuration.inMinutes == 0) return;
+                  
+                  // Wait for gesture to complete
+                  await Future.delayed(const Duration(milliseconds: 100));
+                  if (!mounted) return;
+                  
+                  // Use GoRouter for navigation (compatible with page-based routing)
+                  context.pushReplacement(
+                    AppRoutes.focusTimer,
+                    extra: _selectedDuration.inMinutes,
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD12A),
+                    borderRadius: BorderRadius.circular(30), // Matching AgeScreen rounded style
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Start Focus Session',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+
+
+

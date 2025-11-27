@@ -67,8 +67,11 @@ class _TimerScreenState extends State<TimerScreen> {
                       ),
                       const SizedBox(height: 30),
                       ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
+                        onPressed: () async {
+                          await Future.delayed(const Duration(milliseconds: 50));
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFF6B35),

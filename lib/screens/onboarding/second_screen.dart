@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'character_selection_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/router/app_router.dart';
 
 class SecondScreen extends StatefulWidget {
   const SecondScreen({super.key});
@@ -229,10 +230,13 @@ class _SecondScreenState extends State<SecondScreen> with TickerProviderStateMix
                         color: Colors.transparent,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (context) => const CharacterSelectionScreen()),
-                            );
+                          onTap: () async {
+                            await Future.delayed(const Duration(milliseconds: 100));
+                            if (mounted) {
+                              if (mounted) {
+                                context.push(AppRoutes.onboardingCharacter);
+                              }
+                            }
                           },
                           child: Center(
                             child: Text(

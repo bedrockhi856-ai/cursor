@@ -68,11 +68,14 @@ class _FocusScreenState extends State<FocusScreen> {
                       ),
                       const SizedBox(height: 30),
                       ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const TimerScreen()),
-                          );
+                        onPressed: () async {
+                          await Future.delayed(const Duration(milliseconds: 50));
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const TimerScreen()),
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFF6B35),

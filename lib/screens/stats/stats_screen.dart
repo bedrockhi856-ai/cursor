@@ -102,7 +102,10 @@ class _StatsScreenState extends State<StatsScreen> {
 
   Widget _buildNavItem(IconData activeIcon, String label, IconData inactiveIcon, bool isSelected) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
+        await Future.delayed(const Duration(milliseconds: 50));
+        if (!context.mounted) return;
+        
         if (label == 'Home') {
           Navigator.pop(context);
         } else if (label == 'Profile') {

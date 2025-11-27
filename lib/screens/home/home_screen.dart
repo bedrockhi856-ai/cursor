@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import '../stats/stats_screen.dart';
-import '../profile/profile_screen.dart';
-import '../map/map_screen.dart';
-import '../focus/timer_setup_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/router/app_router.dart';
+import '../../data/providers/providers.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _greetingController;
   late AnimationController _progressController;
@@ -195,13 +195,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _onFocusButtonTap() {
-    _focusButtonController.forward().then((_) {
-      _focusButtonController.reverse();
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const TimerSetupScreen()),
-      );
-    });
+  void _onFocusButtonTap() async {
+    await _focusButtonController.forward();
+    _focusButtonController.reverse();
+    if (mounted) {
+      context.push(AppRoutes.timerSetup);
+    }
   }
 
   void _onFocusButtonLongPressStart(LongPressStartDetails details) {
@@ -224,34 +223,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProvider);
+    final progress = ref.watch(progressProvider);
+    final userName = user?.name.isNotEmpty == true ? user!.name : 'Friend';
+    final currentLevel = progress?.currentLevel ?? 1;
+    final streak = progress?.currentStreak ?? 0;
+    final totalMinutes = progress?.totalFocusMinutes ?? 0;
+    
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home_rounded, 'Home', Icons.home_outlined, true),
-                _buildNavItem(Icons.map_rounded, 'Map', Icons.map_outlined, false),
-                _buildNavItem(Icons.bar_chart_rounded, 'Stats', Icons.bar_chart_outlined, false),
-                _buildNavItem(Icons.person_rounded, 'Profile', Icons.person_outlined, false),
-              ],
-            ),
-          ),
-        ),
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -287,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              'Level 2',
+                              'Level $currentLevel',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -309,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   ),
                                   child: FractionallySizedBox(
                                     alignment: Alignment.centerLeft,
-                                    widthFactor: (320 / 500) * _progressAnimation.value,
+                                    widthFactor: ((totalMinutes % 60) / 60) * _progressAnimation.value,
                                     child: Container(
                                       decoration: BoxDecoration(
                                         color: Color(0xFFFF6B35),
@@ -328,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '320/500 XP',
+                              '${totalMinutes % 60}/60 XP',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.black54,
@@ -352,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Opacity(
                       opacity: _greetingAnimation.value.clamp(0.0, 1.0),
                       child: Text(
-                        'Ready to grow again, Mohiddin?',
+                        'Ready to grow again, $userName?',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w600,
@@ -455,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: _buildStatsCard(
                       icon: Icons.local_fire_department,
                       iconColor: Color(0xFFFF6B35),
-                      value: '97 days',
+                      value: '$streak days',
                       label: 'streak',
                       onTap: _onStreakCardTap,
                     ),
@@ -466,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: _buildStatsCard(
                       icon: Icons.access_time,
                       iconColor: Color(0xFF2196F3),
-                      value: '1200 min',
+                      value: '$totalMinutes min',
                       label: 'productive',
                       onTap: _onProductiveCardTap,
                     ),
@@ -665,63 +645,5 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _onProductiveCardTap() {
     // Clock icon ticks forward twice
     // This will be handled by the animation system
-  }
-
-  Widget _buildNavItem(IconData activeIcon, String label, IconData inactiveIcon, bool isSelected) {
-    return GestureDetector(
-      onTap: () {
-        if (label == 'Stats') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StatsScreen()),
-          );
-        } else if (label == 'Profile') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ProfileScreen()),
-          );
-        } else if (label == 'Map') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const MapScreen()),
-          );
-        }
-        // Home stays on current screen
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                isSelected ? activeIcon : inactiveIcon,
-                key: ValueKey(isSelected),
-                size: 24,
-                color: isSelected ? const Color(0xFFFF6B35) : Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? const Color(0xFFFF6B35) : Colors.grey.shade600,
-                fontFamily: 'Inter',
-              ),
-              child: Text(label),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

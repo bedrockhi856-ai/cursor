@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'second_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/router/app_router.dart';
+import '../../data/providers/providers.dart';
 import '../../widgets/buttons/hold_to_begin_button.dart';
 
-class FirstScreen extends StatefulWidget {
-  final int? regainableYears;
-  const FirstScreen({super.key, this.regainableYears});
+class FirstScreen extends ConsumerStatefulWidget {
+  const FirstScreen({super.key});
 
   @override
-  State<FirstScreen> createState() => _FirstScreenState();
+  ConsumerState<FirstScreen> createState() => _FirstScreenState();
 }
 
-class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin {
+class _FirstScreenState extends ConsumerState<FirstScreen> with TickerProviderStateMixin {
   bool isSwitchOn = false;
   late AnimationController _headingController;
   late AnimationController _switchController;
@@ -108,15 +110,19 @@ class _FirstScreenState extends State<FirstScreen> with TickerProviderStateMixin
     super.dispose();
   }
   
-  void onHoldComplete() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const SecondScreen()),
-    );
+  void onHoldComplete() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      if (mounted) {
+        context.push(AppRoutes.onboardingSecond);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final int regainYears = widget.regainableYears ?? 3;
+    final user = ref.watch(userProvider);
+    final int regainYears = user?.regainableYears.round() ?? 3;
     final screenHeight = MediaQuery.of(context).size.height;
     final safeAreaTop = MediaQuery.of(context).padding.top;
     final safeAreaBottom = MediaQuery.of(context).padding.bottom;
