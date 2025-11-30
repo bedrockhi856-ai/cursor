@@ -1,33 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../stats/stats_screen.dart';
-import '../profile/profile_screen.dart';
 import '../../widgets/clippers/progress_mountain_clipper.dart';
+import '../../data/providers/providers.dart';
 
-class MapScreen extends StatefulWidget {
+class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
   @override
-  State<MapScreen> createState() => _MapScreenState();
+  ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
+class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateMixin {
   // Define level positions as percentages of container dimensions
   final List<Map<String, dynamic>> levelPositions = [
-    {'level': 10, 'title': 'Summit', 'topPercent': 0.017, 'leftPercent': 0.497, 'unlocked': false},
-    {'level': 9, 'title': 'Legend', 'topPercent': 0.110, 'leftPercent': 0.560, 'unlocked': false},
-    {'level': 8, 'title': 'Master', 'topPercent': 0.190, 'leftPercent': 0.347, 'unlocked': false},
-    {'level': 7, 'title': 'Hero', 'topPercent': 0.275, 'leftPercent': 0.520, 'unlocked': false},
-    {'level': 6, 'title': 'Champion', 'topPercent': 0.360, 'leftPercent': 0.387, 'unlocked': false},
-    {'level': 5, 'title': 'Explorer', 'topPercent': 0.465, 'leftPercent': 0.453, 'unlocked': false},
-    {'level': 4, 'title': 'Adventurer', 'topPercent': 0.580, 'leftPercent': 0.395, 'unlocked': false},
-    {'level': 3, 'title': 'Seeker', 'topPercent': 0.670, 'leftPercent': 0.627, 'unlocked': true},
-    {'level': 2, 'title': 'Novice', 'topPercent': 0.780, 'leftPercent': 0.693, 'unlocked': true},
-    {'level': 1, 'title': 'Beginner', 'topPercent': 0.890, 'leftPercent': 0.600, 'unlocked': true},
+    {'level': 10, 'title': 'Summit', 'topPercent': 0.017, 'leftPercent': 0.497},
+    {'level': 9, 'title': 'Legend', 'topPercent': 0.110, 'leftPercent': 0.560},
+    {'level': 8, 'title': 'Master', 'topPercent': 0.190, 'leftPercent': 0.347},
+    {'level': 7, 'title': 'Hero', 'topPercent': 0.275, 'leftPercent': 0.520},
+    {'level': 6, 'title': 'Champion', 'topPercent': 0.360, 'leftPercent': 0.387},
+    {'level': 5, 'title': 'Explorer', 'topPercent': 0.465, 'leftPercent': 0.453},
+    {'level': 4, 'title': 'Adventurer', 'topPercent': 0.580, 'leftPercent': 0.395},
+    {'level': 3, 'title': 'Seeker', 'topPercent': 0.670, 'leftPercent': 0.627},
+    {'level': 2, 'title': 'Novice', 'topPercent': 0.780, 'leftPercent': 0.693},
+    {'level': 1, 'title': 'Beginner', 'topPercent': 0.890, 'leftPercent': 0.600},
   ];
-  
-  int currentLevel = 3;
-  int highestCompletedLevel = 2;
   
   late AnimationController _glowController;
   late AnimationController _pulseController;
@@ -77,34 +74,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final progress = ref.watch(progressProvider);
+    final currentLevel = progress?.currentLevel ?? 1;
+    final highestCompletedLevel = currentLevel - 1;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home_rounded, 'Home', Icons.home_outlined, false),
-                _buildNavItem(Icons.map_rounded, 'Map', Icons.map_outlined, true),
-                _buildNavItem(Icons.bar_chart_rounded, 'Stats', Icons.bar_chart_outlined, false),
-                _buildNavItem(Icons.person_rounded, 'Profile', Icons.person_outlined, false),
-              ],
-            ),
-          ),
-        ),
-      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -133,7 +108,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     AnimatedBuilder(
                       animation: _glowAnimation,
                       builder: (context, child) {
-                        double colorfulProgress = _calculateColorfulProgress();
+                        double colorfulProgress = _calculateColorfulProgress(highestCompletedLevel);
                         
                         return ClipPath(
                           clipper: ProgressMountainClipper(colorfulProgress),
@@ -154,6 +129,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     ...levelPositions.map((levelData) {
                       final topPosition = containerHeight * levelData['topPercent'];
                       final leftPosition = (screenWidth * levelData['leftPercent']) - 40;
+                      final isUnlocked = levelData['level'] <= currentLevel;
                       
                       return Positioned(
                         top: topPosition,
@@ -161,10 +137,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         child: _buildLevelNode(
                           levelData['level'],
                           levelData['title'],
-                          levelData['unlocked'],
+                          isUnlocked,
+                          currentLevel,
+                          highestCompletedLevel,
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
@@ -175,7 +153,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
   
-  double _calculateColorfulProgress() {
+  double _calculateColorfulProgress(int highestCompletedLevel) {
     if (highestCompletedLevel == 0) return 0.0;
     
     double highestCompletedPosition = 1.0;
@@ -191,7 +169,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     return 1.0 - highestCompletedPosition;
   }
 
-  Widget _buildLevelNode(int level, String title, bool isUnlocked) {
+  Widget _buildLevelNode(int level, String title, bool isUnlocked, int currentLevel, int highestCompletedLevel) {
     final bool isCurrentLevel = level == currentLevel;
     final bool isCompleted = level <= highestCompletedLevel;
     
@@ -372,62 +350,5 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     } else {
       return Colors.white;
     }
-  }
-
-  Widget _buildNavItem(IconData activeIcon, String label, IconData inactiveIcon, bool isSelected) {
-    return GestureDetector(
-      onTap: () async {
-        await Future.delayed(const Duration(milliseconds: 50));
-        if (!context.mounted) return;
-        
-        if (label == 'Home') {
-          Navigator.pop(context);
-        } else if (label == 'Stats') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const StatsScreen()),
-          );
-        } else if (label == 'Profile') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const ProfileScreen()),
-          );
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                isSelected ? activeIcon : inactiveIcon,
-                key: ValueKey(isSelected),
-                size: 24,
-                color: isSelected ? const Color(0xFFFF6B35) : Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? const Color(0xFFFF6B35) : Colors.grey.shade600,
-                fontFamily: 'Inter',
-              ),
-              child: Text(label),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

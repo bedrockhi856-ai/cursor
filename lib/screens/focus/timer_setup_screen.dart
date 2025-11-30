@@ -293,10 +293,9 @@ class _TimerSetupScreenState extends State<TimerSetupScreen> {
                   await Future.delayed(const Duration(milliseconds: 100));
                   if (!mounted) return;
                   
-                  // Use GoRouter for navigation (compatible with page-based routing)
-                  context.pushReplacement(
-                    AppRoutes.focusTimer,
-                    extra: _selectedDuration.inMinutes,
+                  // Use GoRouter push for navigation
+                  context.push(
+                    '${AppRoutes.focusTimer}?duration=${_selectedDuration.inMinutes}',
                   );
                 },
                 child: Container(

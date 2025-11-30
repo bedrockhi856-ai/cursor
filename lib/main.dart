@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/sources/local/hive_service.dart';
 import 'core/router/app_router.dart';
+import 'core/errors/error_boundary.dart';
 
 void main() async {
   debugPrint('===== APP STARTING =====');
@@ -56,22 +57,29 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     
-    return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.orange,
-        fontFamily: 'Inter',
-        useMaterial3: true,
-      ),
-      routerConfig: router,
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            viewPadding: EdgeInsets.zero,
-          ),
-          child: child!,
-        );
+    return ErrorBoundary(
+      onError: (error, stackTrace) {
+        // Log errors to analytics or crash reporting service
+        debugPrint('🔴 App Error: $error');
+        debugPrint('Stack trace: $stackTrace');
       },
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.orange,
+          fontFamily: 'Inter',
+          useMaterial3: true,
+        ),
+        routerConfig: router,
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              viewPadding: EdgeInsets.zero,
+            ),
+            child: child!,
+          );
+        },
+      ),
     );
   }
 }

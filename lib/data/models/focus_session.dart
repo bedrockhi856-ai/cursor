@@ -23,8 +23,14 @@ class FocusSession extends Equatable {
   @HiveField(0)
   final String id;
 
+  /// Note: This field has a typo (oderId instead of userId) but is kept
+  /// for backward compatibility with existing Hive data.
+  /// Use the [userId] getter instead.
   @HiveField(1)
   final String oderId;
+
+  /// Get the user ID (alias for oderId to fix typo)
+  String get userId => oderId;
 
   @HiveField(2)
   final DateTime startTime;

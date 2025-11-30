@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
 
@@ -18,17 +20,29 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
   late AnimationController _breathingController;
   late AnimationController _cycleController;
   late AnimationController _auraController;
+  late AnimationController _buttonController;
+  late AnimationController _phaseTextController;
   late Animation<double> _scaleAnimation;
+  Animation<double>? _buttonScaleAnimationInternal;
+  
+  Animation<double> get _buttonScaleAnimation => 
+      _buttonScaleAnimationInternal ?? const AlwaysStoppedAnimation(1.0);
   
   Timer? _sessionTimer;
   Timer? _phaseTimer;
+  Timer? _phaseDelayTimer;
   
   int _remainingSeconds = 0;
   int _totalSeconds = 0;
   bool _isPaused = false;
+  int _breathsCompleted = 0;
   
   BreathingPhase _currentPhase = BreathingPhase.inhale;
   int _phaseRemainingSeconds = 4;
+  
+  // Store animation state for resume
+  double _pausedAnimationValue = 0.0;
+  double _pausedAuraValue = 0.0;
 
   @override
   void initState() {
@@ -54,6 +68,18 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
       duration: const Duration(seconds: 25),
     )..repeat();
     
+    // Button animation controller for scale feedback
+    _buttonController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    
+    // Phase text animation controller
+    _phaseTextController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    
     // Scale animation with smooth easing (14% expansion from min to max)
     _scaleAnimation = Tween<double>(
       begin: 0.86,
@@ -61,6 +87,17 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
     ).animate(
       CurvedAnimation(
         parent: _breathingController,
+        curve: Curves.easeInOut,
+      ),
+    );
+    
+    // Button scale animation for haptic feel
+    _buttonScaleAnimationInternal = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(
+      CurvedAnimation(
+        parent: _buttonController,
         curve: Curves.easeInOut,
       ),
     );
@@ -76,6 +113,8 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
     _breathingController.dispose();
     _cycleController.dispose();
     _auraController.dispose();
+    _buttonController.dispose();
+    _phaseTextController.dispose();
     super.dispose();
   }
 
@@ -161,31 +200,82 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
     Future.delayed(const Duration(seconds: 8), () {
       if (mounted && !_isPaused) {
         _phaseTimer?.cancel();
+        setState(() {
+          _breathsCompleted++; // Count completed breath cycle
+        });
         _startInhalePhase(); // Loop back to inhale
       }
     });
   }
 
-  void _togglePause() {
-    setState(() {
-      _isPaused = !_isPaused;
-    });
+  void _togglePause() async {
+    // Add haptic feedback
+    HapticFeedback.mediumImpact();
     
-    if (_isPaused) {
+    // Animate button press
+    await _buttonController.forward();
+    await _buttonController.reverse();
+    
+    if (!_isPaused) {
+      // Pausing - save current animation state
+      _pausedAnimationValue = _breathingController.value;
+      _pausedAuraValue = _auraController.value;
       _breathingController.stop();
       _auraController.stop();
       _phaseTimer?.cancel();
+      _phaseDelayTimer?.cancel();
     } else {
-      // Resume from current phase
+      // Resuming - continue from saved state
+      _auraController.forward(from: _pausedAuraValue);
       _auraController.repeat();
+      
+      // Resume breathing animation from where it was
       if (_currentPhase == BreathingPhase.inhale) {
-        _startInhalePhase();
+        _breathingController.forward(from: _pausedAnimationValue);
+        _restartPhaseTimer(_phaseRemainingSeconds, BreathingPhase.hold);
       } else if (_currentPhase == BreathingPhase.hold) {
-        _startHoldPhase();
+        // Hold phase doesn't animate the breathing controller
+        _restartPhaseTimer(_phaseRemainingSeconds, BreathingPhase.exhale);
       } else {
-        _startExhalePhase();
+        _breathingController.reverse(from: _pausedAnimationValue);
+        _restartPhaseTimer(_phaseRemainingSeconds, BreathingPhase.inhale);
       }
     }
+    
+    setState(() {
+      _isPaused = !_isPaused;
+    });
+  }
+  
+  void _restartPhaseTimer(int remainingSeconds, BreathingPhase nextPhase) {
+    _phaseTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!_isPaused) {
+        setState(() {
+          _phaseRemainingSeconds--;
+        });
+      }
+    });
+    
+    Future.delayed(Duration(seconds: remainingSeconds), () {
+      if (mounted && !_isPaused) {
+        _phaseTimer?.cancel();
+        if (nextPhase == BreathingPhase.hold) {
+          _startHoldPhase();
+        } else if (nextPhase == BreathingPhase.exhale) {
+          _startExhalePhase();
+        } else {
+          setState(() {
+            _breathsCompleted++;
+          });
+          _startInhalePhase();
+        }
+      }
+    });
+  }
+
+  double get _sessionProgress {
+    if (_totalSeconds == 0) return 0.0;
+    return 1.0 - (_remainingSeconds / _totalSeconds);
   }
 
   String _formatTime(int seconds) {
@@ -199,17 +289,6 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
     } else {
       // Show minutes:seconds for sessions < 1 hour
       return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-    }
-  }
-
-  String get _breathingInstruction {
-    switch (_currentPhase) {
-      case BreathingPhase.inhale:
-        return 'Inhale through your nose';
-      case BreathingPhase.hold:
-        return 'Hold';
-      case BreathingPhase.exhale:
-        return 'Exhale through your mouth';
     }
   }
 
@@ -240,7 +319,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Match app design
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -252,6 +331,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.black, size: 28),
                     onPressed: () async {
+                      HapticFeedback.lightImpact();
                       await Future.delayed(const Duration(milliseconds: 50));
                       if (context.mounted) {
                         context.pop();
@@ -268,11 +348,40 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
                       fontFamily: 'Inter',
                     ),
                   ),
+                  const Spacer(),
+                  // Session stats pill
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF6B35).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.air_rounded,
+                          size: 16,
+                          color: const Color(0xFFFF6B35),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$_breathsCompleted',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFFF6B35),
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
             
-            const Spacer(),
+            const Spacer(flex: 2),
             
             // Breathing circle with animation
             Center(
@@ -301,20 +410,25 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
                                   ),
                                 ),
                               ),
-                              // White circle background
-                              Container(
-                                width: 280,
-                                height: 280,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.08),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 4),
+                              // White circle background with frosted effect
+                              ClipOval(
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                                  child: Container(
+                                    width: 280,
+                                    height: 280,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withOpacity(0.95),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.06),
+                                          blurRadius: 25,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -323,117 +437,169 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
                       );
                     },
                   ),
-                  // Static timer (doesn't scale or rotate)
-                  Text(
-                    _formatTime(_remainingSeconds),
-                    style: TextStyle(
-                      fontSize: _remainingSeconds >= 3600 ? 48 : 64,
-                      fontWeight: FontWeight.w300,
-                      color: const Color(0xFF2C2C2C),
-                      fontFamily: 'Inter',
-                      letterSpacing: 2,
-                      height: 1.2,
-                    ),
+                  // Timer and phase info (static)
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Phase indicator with animated text
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.3),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Text(
+                          _currentPhase.name.toUpperCase(),
+                          key: ValueKey<BreathingPhase>(_currentPhase),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _getPhaseColor().withOpacity(0.8),
+                            fontFamily: 'Inter',
+                            letterSpacing: 3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Timer display
+                      Text(
+                        _formatTime(_remainingSeconds),
+                        style: TextStyle(
+                          fontSize: _remainingSeconds >= 3600 ? 44 : 56,
+                          fontWeight: FontWeight.w200,
+                          color: const Color(0xFF2C2C2C),
+                          fontFamily: 'Inter',
+                          letterSpacing: 2,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Phase countdown pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getPhaseColor().withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '$_phaseRemainingSeconds sec',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _getPhaseColor(),
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             
-            const Spacer(),
+            const Spacer(flex: 3),
             
-            // Breathing instruction text
-            Text(
-              _breathingInstruction,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-                fontFamily: 'Inter',
-              ),
-            ),
-            
-            const SizedBox(height: 8),
-            
-            // Phase duration
-            Text(
-              '($_phaseRemainingSeconds sec)',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                fontFamily: 'Inter',
-              ),
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Progress bar
+            // Minimal liquid-fill pause/resume button
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: LinearProgressIndicator(
-                  value: 1.0 - (_remainingSeconds / _totalSeconds),
-                  backgroundColor: Colors.grey[200],
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF6B35)),
-                  minHeight: 6,
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Timer display
-            Text(
-              _formatTime(_remainingSeconds),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-                fontFamily: 'Inter',
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Pause button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0),
+              padding: const EdgeInsets.symmetric(horizontal: 60.0),
               child: GestureDetector(
                 onTap: _togglePause,
                 child: Container(
-                  width: double.infinity,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B35),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFF6B35).withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    color: const Color(0xFFEDEDED),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: Colors.grey[350]!,
+                      width: 1,
+                    ),
                   ),
-                  child: Center(
-                    child: Text(
-                      _isPaused ? 'Resume' : 'Pause',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        fontFamily: 'Inter',
-                      ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(27),
+                    child: Stack(
+                      children: [
+                        // Liquid fill based on session progress
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 800),
+                            curve: Curves.easeOutCubic,
+                            width: (MediaQuery.of(context).size.width - 120) * _sessionProgress,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF58CC02).withOpacity(0.6),
+                                  const Color(0xFF58CC02).withOpacity(0.8),
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Button content
+                        Center(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: Row(
+                              key: ValueKey<bool>(_isPaused),
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                                  color: const Color(0xFF3C3C3C),
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isPaused ? 'Resume' : 'Pause',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF3C3C3C),
+                                    fontFamily: 'Inter',
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
             
-            const SizedBox(height: 40),
+            const SizedBox(height: 80),
           ],
         ),
       ),
     );
+  }
+  
+  Color _getPhaseColor() {
+    switch (_currentPhase) {
+      case BreathingPhase.inhale:
+        return const Color(0xFF4CAF50); // Green for inhale
+      case BreathingPhase.hold:
+        return const Color(0xFFFF9800); // Orange for hold
+      case BreathingPhase.exhale:
+        return const Color(0xFF2196F3); // Blue for exhale
+    }
   }
 }
 
@@ -534,5 +700,68 @@ class _QuarterBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(_QuarterBorderPainter oldDelegate) {
     return oldDelegate.animationValue != animationValue;
+  }
+}
+
+// Custom painter for session progress ring
+class _SessionProgressPainter extends CustomPainter {
+  final double progress;
+  final Color backgroundColor;
+  final Color progressColor;
+  
+  _SessionProgressPainter({
+    required this.progress,
+    required this.backgroundColor,
+    required this.progressColor,
+  });
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 4;
+    const strokeWidth = 4.0;
+    
+    // Background ring
+    final bgPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+    
+    canvas.drawCircle(center, radius, bgPaint);
+    
+    // Progress arc
+    if (progress > 0) {
+      final progressPaint = Paint()
+        ..shader = SweepGradient(
+          startAngle: -math.pi / 2,
+          endAngle: math.pi * 2 - math.pi / 2,
+          colors: [
+            progressColor.withOpacity(0.4),
+            progressColor,
+            progressColor,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+          transform: const GradientRotation(-math.pi / 2),
+        ).createShader(Rect.fromCircle(center: center, radius: radius))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+      
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2, // Start from top
+        progress * 2 * math.pi, // Sweep based on progress
+        false,
+        progressPaint,
+      );
+    }
+  }
+  
+  @override
+  bool shouldRepaint(_SessionProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+           oldDelegate.backgroundColor != backgroundColor ||
+           oldDelegate.progressColor != progressColor;
   }
 }

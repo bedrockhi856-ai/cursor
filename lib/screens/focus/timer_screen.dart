@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
@@ -70,7 +71,7 @@ class _TimerScreenState extends State<TimerScreen> {
                         onPressed: () async {
                           await Future.delayed(const Duration(milliseconds: 50));
                           if (context.mounted) {
-                            Navigator.pop(context);
+                            context.pop();
                           }
                         },
                         style: ElevatedButton.styleFrom(

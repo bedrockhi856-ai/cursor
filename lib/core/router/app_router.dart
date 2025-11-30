@@ -135,7 +135,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.focusTimer,
         name: 'focus-timer',
         builder: (context, state) {
-          final minutes = state.extra as int? ?? 25;
+          // Get duration from query parameter or extra, default to 25
+          final durationStr = state.uri.queryParameters['duration'];
+          final minutes = durationStr != null ? int.tryParse(durationStr) ?? 25 : (state.extra as int? ?? 25);
           return FocusTimerScreen(durationMinutes: minutes);
         },
       ),

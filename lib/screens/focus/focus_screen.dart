@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'timer_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class FocusScreen extends StatefulWidget {
   const FocusScreen({super.key});
@@ -71,10 +71,7 @@ class _FocusScreenState extends State<FocusScreen> {
                         onPressed: () async {
                           await Future.delayed(const Duration(milliseconds: 50));
                           if (context.mounted) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const TimerScreen()),
-                            );
+                            context.push('/timerSetup');
                           }
                         },
                         style: ElevatedButton.styleFrom(

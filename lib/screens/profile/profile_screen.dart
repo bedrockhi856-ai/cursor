@@ -1,52 +1,28 @@
 import 'package:flutter/material.dart';
-import '../stats/stats_screen.dart';
-import '../map/map_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../data/providers/providers.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userProvider);
+    final progress = ref.watch(progressProvider);
+    
+    final userName = user?.name.isNotEmpty == true ? user!.name : 'Friend';
+    final currentLevel = progress?.currentLevel ?? 1;
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home_rounded, 'Home', Icons.home_outlined, false),
-                _buildNavItem(Icons.map_rounded, 'Map', Icons.map_outlined, false),
-                _buildNavItem(Icons.bar_chart_rounded, 'Stats', Icons.bar_chart_outlined, false),
-                _buildNavItem(Icons.person_rounded, 'Profile', Icons.person_outlined, true),
-              ],
-            ),
-          ),
-        ),
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Profile',
                 style: TextStyle(
                   fontSize: 28,
@@ -70,16 +46,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 2,
                         ),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.person,
                         size: 50,
-                        color: const Color(0xFFFF6B35),
+                        color: Color(0xFFFF6B35),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Mohiddin',
-                      style: TextStyle(
+                      userName,
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -88,7 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Focus Enthusiast',
+                      'Level $currentLevel • Focus Enthusiast',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey.shade600,
@@ -102,11 +78,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Expanded(
                 child: ListView(
                   children: [
-                    _buildProfileItem(Icons.settings, 'Settings'),
-                    _buildProfileItem(Icons.notifications, 'Notifications'),
-                    _buildProfileItem(Icons.help, 'Help & Support'),
-                    _buildProfileItem(Icons.info, 'About'),
-                    _buildProfileItem(Icons.logout, 'Logout', isDestructive: true),
+                    _buildProfileItem(context, Icons.settings, 'Settings'),
+                    _buildProfileItem(context, Icons.notifications, 'Notifications'),
+                    _buildProfileItem(context, Icons.help, 'Help & Support'),
+                    _buildProfileItem(context, Icons.info, 'About'),
+                    _buildProfileItem(context, Icons.logout, 'Logout', isDestructive: true),
                   ],
                 ),
               ),
@@ -117,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileItem(IconData icon, String title, {bool isDestructive = false}) {
+  Widget _buildProfileItem(BuildContext context, IconData icon, String title, {bool isDestructive = false}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
@@ -149,66 +125,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: Colors.grey.shade400,
         ),
         onTap: () {
-          // Handle navigation
+          if (title == 'Settings') {
+            context.push('/settings');
+          }
+          // Handle other navigation
         },
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData activeIcon, String label, IconData inactiveIcon, bool isSelected) {
-    return GestureDetector(
-      onTap: () async {
-        await Future.delayed(const Duration(milliseconds: 50));
-        if (!context.mounted) return;
-        
-        if (label == 'Home') {
-          Navigator.pop(context);
-        } else if (label == 'Stats') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const StatsScreen()),
-          );
-        } else if (label == 'Map') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MapScreen()),
-          );
-        }
-        // Profile stays on current screen
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFF6B35).withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                isSelected ? activeIcon : inactiveIcon,
-                key: ValueKey(isSelected),
-                size: 24,
-                color: isSelected ? const Color(0xFFFF6B35) : Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? const Color(0xFFFF6B35) : Colors.grey.shade600,
-                fontFamily: 'Inter',
-              ),
-              child: Text(label),
-            ),
-          ],
-        ),
       ),
     );
   }

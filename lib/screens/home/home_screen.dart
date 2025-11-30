@@ -393,7 +393,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'David',
+                                    'Your Buddy',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -406,7 +406,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                                     _buildTypingIndicator()
                                   else
                                     Text(
-                                      'My son said you look big papa, thanks to you mohiddin !!',
+                                      _getMotivationalMessage(userName, streak),
                                       style: TextStyle(
                                         fontSize: 16,
                                         color: Colors.white,
@@ -645,5 +645,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   void _onProductiveCardTap() {
     // Clock icon ticks forward twice
     // This will be handled by the animation system
+  }
+
+  /// Get a motivational message based on user's name and streak
+  String _getMotivationalMessage(String name, int streak) {
+    if (streak == 0) {
+      return "Hey $name! Ready to start your focus journey today?";
+    } else if (streak == 1) {
+      return "Great start $name! You focused yesterday. Let's keep it going!";
+    } else if (streak < 7) {
+      return "Awesome $name! $streak days in a row. You're building momentum!";
+    } else if (streak < 30) {
+      return "Incredible $name! $streak day streak! You're becoming unstoppable!";
+    } else if (streak < 100) {
+      return "Legend status $name! $streak days of pure focus. Amazing!";
+    } else {
+      return "You're a focus master $name! $streak days - absolutely inspiring!";
+    }
   }
 }
