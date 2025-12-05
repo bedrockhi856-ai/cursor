@@ -7,6 +7,7 @@ import '../../screens/onboarding/phone_usage_screen.dart';
 import '../../screens/onboarding/professional_result_screen.dart';
 import '../../screens/onboarding/first_screen.dart';
 import '../../screens/onboarding/second_screen.dart';
+import '../../screens/onboarding/guide_intro_screen.dart';
 import '../../screens/onboarding/character_selection_screen.dart';
 import '../../screens/home/home_screen.dart';
 import '../../screens/map/map_screen.dart';
@@ -25,6 +26,7 @@ class AppRoutes {
   static const String onboardingResult = '/onboarding/result';
   static const String onboardingFirst = '/onboarding/first';
   static const String onboardingSecond = '/onboarding/second';
+  static const String onboardingGuideIntro = '/onboarding/guide-intro';
   static const String onboardingCharacter = '/onboarding/character';
 
   // Main App (with shell/nav bar)
@@ -46,7 +48,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   debugPrint('🔄 Router rebuilding: isOnboardingComplete=$isOnboardingComplete');
 
   return GoRouter(
-    initialLocation: isOnboardingComplete ? AppRoutes.home : AppRoutes.onboardingAge,
+    // TODO: Restore after testing: isOnboardingComplete ? AppRoutes.home : AppRoutes.onboardingAge
+    initialLocation: AppRoutes.home,
     debugLogDiagnostics: true,
     routes: [
       // Onboarding routes
@@ -83,6 +86,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.onboardingSecond,
         name: 'onboarding-second',
         builder: (context, state) => const SecondScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingGuideIntro,
+        name: 'onboarding-guide-intro',
+        builder: (context, state) => const GuideIntroScreen(),
       ),
       GoRoute(
         path: AppRoutes.onboardingCharacter,

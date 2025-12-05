@@ -2,21 +2,24 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
+import 'package:study_buddy/data/providers/game_provider.dart';
+import 'package:study_buddy/widgets/overlays/celebration_overlay.dart';
 
-class FocusTimerScreen extends StatefulWidget {
+class FocusTimerScreen extends ConsumerStatefulWidget {
   final int durationMinutes;
   
   const FocusTimerScreen({super.key, required this.durationMinutes});
 
   @override
-  State<FocusTimerScreen> createState() => _FocusTimerScreenState();
+  ConsumerState<FocusTimerScreen> createState() => _FocusTimerScreenState();
 }
 
 enum BreathingPhase { inhale, hold, exhale }
 
-class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProviderStateMixin {
+class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _breathingController;
   late AnimationController _cycleController;
   late AnimationController _auraController;
@@ -43,12 +46,23 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
   // Store animation state for resume
   double _pausedAnimationValue = 0.0;
   double _pausedAuraValue = 0.0;
+  
+  // Background timer handling - track when session should end
+  DateTime? _sessionEndTime;
+  DateTime? _pausedAt;
+  Duration _pausedDuration = Duration.zero;
 
   @override
   void initState() {
     super.initState();
+    // Register as lifecycle observer to handle background/foreground transitions
+    WidgetsBinding.instance.addObserver(this);
+    
     _remainingSeconds = widget.durationMinutes * 60;
     _totalSeconds = widget.durationMinutes * 60;
+    
+    // Set the absolute end time for the session
+    _sessionEndTime = DateTime.now().add(Duration(seconds: _totalSeconds));
     
     // Breathing animation controller (4 seconds per phase)
     _breathingController = AnimationController(
@@ -108,6 +122,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sessionTimer?.cancel();
     _phaseTimer?.cancel();
     _breathingController.dispose();
@@ -117,20 +132,85 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
     _phaseTextController.dispose();
     super.dispose();
   }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // App going to background - record pause time if not already paused
+      if (!_isPaused) {
+        _pausedAt = DateTime.now();
+        // Stop animations to save battery
+        _breathingController.stop();
+        _auraController.stop();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // App coming back to foreground - calculate elapsed time
+      _onAppResumed();
+    }
+  }
+  
+  void _onAppResumed() {
+    if (_sessionEndTime == null) return;
+    
+    final now = DateTime.now();
+    
+    // If user had manually paused before backgrounding, just resume animations
+    if (_isPaused) {
+      // Don't update remaining time - user paused it
+      return;
+    }
+    
+    // Calculate how much time passed while in background
+    if (_pausedAt != null) {
+      final backgroundDuration = now.difference(_pausedAt!);
+      _pausedAt = null;
+      
+      // Update remaining seconds based on actual elapsed time
+      final newRemaining = _sessionEndTime!.difference(now).inSeconds;
+      
+      if (newRemaining <= 0) {
+        // Session completed while in background!
+        setState(() {
+          _remainingSeconds = 0;
+        });
+        _sessionTimer?.cancel();
+        _phaseTimer?.cancel();
+        _breathingController.stop();
+        _showCompletionDialog();
+      } else {
+        setState(() {
+          _remainingSeconds = newRemaining;
+        });
+        
+        // Resume animations
+        _auraController.repeat();
+        // Restart breathing cycle fresh
+        _startBreathingCycle();
+      }
+    }
+  }
 
   void _startSessionTimer() {
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!_isPaused) {
-        setState(() {
-          if (_remainingSeconds > 0) {
-            _remainingSeconds--;
-          } else {
+        // Use timestamp-based calculation for accuracy
+        if (_sessionEndTime != null) {
+          final now = DateTime.now();
+          final newRemaining = _sessionEndTime!.difference(now).inSeconds;
+          
+          setState(() {
+            _remainingSeconds = newRemaining > 0 ? newRemaining : 0;
+          });
+          
+          if (_remainingSeconds <= 0) {
             _sessionTimer?.cancel();
             _phaseTimer?.cancel();
             _breathingController.stop();
             _showCompletionDialog();
           }
-        });
+        }
       }
     });
   }
@@ -217,15 +297,23 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
     await _buttonController.reverse();
     
     if (!_isPaused) {
-      // Pausing - save current animation state
+      // Pausing - save current animation state and pause time
       _pausedAnimationValue = _breathingController.value;
       _pausedAuraValue = _auraController.value;
+      _pausedAt = DateTime.now(); // Record when user paused
       _breathingController.stop();
       _auraController.stop();
       _phaseTimer?.cancel();
       _phaseDelayTimer?.cancel();
     } else {
-      // Resuming - continue from saved state
+      // Resuming - adjust end time to account for paused duration
+      if (_pausedAt != null && _sessionEndTime != null) {
+        final pauseDuration = DateTime.now().difference(_pausedAt!);
+        _sessionEndTime = _sessionEndTime!.add(pauseDuration);
+        _pausedAt = null;
+      }
+      
+      // Resume animations
       _auraController.forward(from: _pausedAuraValue);
       _auraController.repeat();
       
@@ -292,28 +380,57 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> with TickerProvider
     }
   }
 
-  void _showCompletionDialog() {
-    final parentContext = context; // Capture widget's context
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Session Complete!'),
-        content: const Text('Great job! You\'ve completed your focus session.'),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop(); // Close dialog
-              await Future.delayed(const Duration(milliseconds: 100));
-              if (parentContext.mounted) {
-                parentContext.pop(); // Go back using GoRouter
-              }
-            },
-            child: const Text('Done'),
+  Future<void> _showCompletionDialog() async {
+    final parentContext = context;
+    
+    // Calculate focus minutes completed
+    final focusMinutes = ((_totalSeconds - _remainingSeconds) / 60).ceil();
+    
+    // Complete the session and get rewards
+    try {
+      final gameNotifier = ref.read(gameStateProvider.notifier);
+      final result = await gameNotifier.completeSession(
+        focusMinutes: focusMinutes > 0 ? focusMinutes : widget.durationMinutes,
+        completedSession: true, // Session was completed, not quit early
+      );
+      
+      // Show celebration overlay
+      if (parentContext.mounted) {
+        showSessionCelebrations(
+          parentContext,
+          result,
+          onComplete: () {
+            if (parentContext.mounted) {
+              parentContext.pop(); // Go back using GoRouter
+            }
+          },
+        );
+      }
+    } catch (e) {
+      // If gamification fails, just show the simple dialog
+      if (parentContext.mounted) {
+        showDialog(
+          context: parentContext,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Session Complete!'),
+            content: const Text('Great job! You\'ve completed your focus session.'),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  await Future.delayed(const Duration(milliseconds: 100));
+                  if (parentContext.mounted) {
+                    parentContext.pop();
+                  }
+                },
+                child: const Text('Done'),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 
   @override

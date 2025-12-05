@@ -234,7 +234,7 @@ class _SecondScreenState extends State<SecondScreen> with TickerProviderStateMix
                             await Future.delayed(const Duration(milliseconds: 100));
                             if (mounted) {
                               if (mounted) {
-                                context.push(AppRoutes.onboardingCharacter);
+                                context.push(AppRoutes.onboardingGuideIntro);
                               }
                             }
                           },

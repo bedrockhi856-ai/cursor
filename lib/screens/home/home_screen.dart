@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../data/providers/providers.dart';
+import '../../data/providers/game_provider.dart';
+import '../../widgets/common/xp_bar.dart';
+import '../../widgets/common/streak_counter.dart';
+import '../../widgets/common/gem_counter.dart';
+import '../../widgets/common/level_badge.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -157,16 +162,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       ),
     );
     
-    // Start animations
+    // Start animations with mounted checks
     _greetingController.forward();
     Future.delayed(const Duration(milliseconds: 300), () {
-      _progressController.forward();
+      if (mounted) _progressController.forward();
     });
     Future.delayed(const Duration(milliseconds: 600), () {
-      _speechController.forward();
+      if (mounted) _speechController.forward();
     });
     Future.delayed(const Duration(milliseconds: 800), () {
-      _typingController.forward();
+      if (mounted) _typingController.forward();
     });
     
     // Start pulse animation for focus button
@@ -226,9 +231,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     final user = ref.watch(userProvider);
     final progress = ref.watch(progressProvider);
     final userName = user?.name.isNotEmpty == true ? user!.name : 'Friend';
-    final currentLevel = progress?.currentLevel ?? 1;
+    // Level comes from gameStateProvider via widgets
     final streak = progress?.currentStreak ?? 0;
-    final totalMinutes = progress?.totalFocusMinutes ?? 0;
+    final totalMinutes = ref.watch(todayFocusMinutesProvider);
     
     return Scaffold(
       backgroundColor: Colors.white,
@@ -238,9 +243,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with hamburger menu, app name, and progress bar
+              // Header with hamburger menu, app name, and gamification stats
               Padding(
-                padding: const EdgeInsets.only(top: 16.0, bottom: 32.0),
+                padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
                 child: Row(
                   children: [
                     Icon(
@@ -259,68 +264,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                       ),
                     ),
                     const Spacer(),
-                    // Progress bar with animation
-                    AnimatedBuilder(
-                      animation: _progressAnimation,
-                      builder: (context, child) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Level $currentLevel',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                                fontFamily: 'Inter',
-                              ),
-                            ),
-                            const SizedBox(height: 1),
-                            // XP Progress Bar with lightning icon
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 120,
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                  child: FractionallySizedBox(
-                                    alignment: Alignment.centerLeft,
-                                    widthFactor: ((totalMinutes % 60) / 60) * _progressAnimation.value,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Color(0xFFFF6B35),
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.flash_on,
-                                  size: 16,
-                                  color: Color(0xFFFFD700),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${totalMinutes % 60}/60 XP',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
-                                fontFamily: 'Inter',
-                              ),
-                            ),
-                          ],
-                        );
+                    // Gamification stats row
+                    Consumer(
+                      builder: (context, ref, child) {
+                        try {
+                          // Check if provider is accessible
+                          ref.watch(gameStateProvider);
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const MiniStreakBadge(),
+                              const SizedBox(width: 8),
+                              const MiniGemBadge(),
+                              const SizedBox(width: 8),
+                              const CompactLevelBadge(size: 28),
+                            ],
+                          );
+                        } catch (e) {
+                          debugPrint('Gamification widgets error: $e');
+                          return const SizedBox.shrink();
+                        }
                       },
                     ),
                   ],
                 ),
+              ),
+              
+              // XP Progress bar
+              Consumer(
+                builder: (context, ref, child) {
+                  try {
+                    ref.watch(gameStateProvider);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: const XPBar(
+                        height: 12,
+                        showXPText: true,
+                        showLevel: false,
+                      ),
+                    );
+                  } catch (e) {
+                    debugPrint('XP bar error: $e');
+                    return const SizedBox(height: 24);
+                  }
+                },
               ),
               
               // Main greeting text with fade in from left
@@ -507,16 +494,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                                 children: [
                                   // Fill effect from left to right
                                   if (_isLongPressing)
-                                    Positioned(
-                                      left: 0,
-                                      top: 0,
-                                      bottom: 0,
-                                      child: FractionallySizedBox(
-                                        widthFactor: fillProgress,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Color(0xFFFFB800),
-                                            borderRadius: BorderRadius.circular(12),
+                                    Positioned.fill(
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: FractionallySizedBox(
+                                          widthFactor: fillProgress,
+                                          heightFactor: 1.0,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: Color(0xFFFFB800),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
                                           ),
                                         ),
                                       ),
