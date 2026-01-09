@@ -129,75 +129,78 @@ class _FirstScreenState extends ConsumerState<FirstScreen> with TickerProviderSt
     
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: AnimatedBuilder(
-        animation: Listenable.merge([
-          _headingAnimation,
-          _switchAnimation,
-          _backgroundAnimation,
-          _holdAnimation,
-          _rippleAnimation,
-        ]),
-        builder: (context, child) {
-          return Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: const AssetImage('assets/background/darkphone.jpg'),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withOpacity((0.4 + (0.1 * _backgroundAnimation.value)).clamp(0.0, 1.0)),
-                  BlendMode.darken,
-                ),
+      body: _buildBody(context, regainYears, screenHeight, safeAreaTop, safeAreaBottom),
+    );
+  }
+  
+  Widget _buildBody(BuildContext context, int regainYears, double screenHeight, double safeAreaTop, double safeAreaBottom) {
+    return AnimatedBuilder(
+      animation: _backgroundAnimation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: const AssetImage('assets/background/darkphone.jpg'),
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(
+                Colors.black.withOpacity((0.4 + (0.1 * _backgroundAnimation.value)).clamp(0.0, 1.0)),
+                BlendMode.darken,
               ),
             ),
-            child: SafeArea(
-              child: SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Stack(
-                  children: [
-                    // Heading at top - fixed position
-                    Positioned(
-                      top: 60,
-                      left: 24,
-                      right: 24,
-                      child: AnimatedOpacity(
-                        opacity: _headingAnimation.value,
-                        duration: const Duration(milliseconds: 600),
-                        child: Transform.translate(
-                          offset: Offset(0, 20 * (1 - _headingAnimation.value)),
-                          child: Text(
-                            'Want to regain $regainYears years\nof your life?',
-                            style: const TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Inter',
-                              height: 1.5,
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: Stack(
+                children: [
+                  // Heading at top - fixed position
+                  Positioned(
+                    top: 60,
+                    left: 24,
+                    right: 24,
+                    child: AnimatedBuilder(
+                      animation: _headingAnimation,
+                      builder: (context, _) {
+                        return Opacity(
+                          opacity: _headingAnimation.value,
+                          child: Transform.translate(
+                            offset: Offset(0, 20 * (1 - _headingAnimation.value)),
+                            child: Text(
+                              'Want to regain $regainYears years\\nof your life?',
+                              style: const TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontFamily: 'Inter',
+                                height: 1.5,
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
-                    
-                    // Freedom Switch box in middle - fixed position
-                    Positioned(
-                      top: (screenHeight - safeAreaTop - safeAreaBottom) * 0.4 + 45,
-                      left: 24,
-                      right: 24,
-                      child: IgnorePointer(
-                        ignoring: false,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
+                  ),
+                  
+                  // Freedom Switch box in middle - fixed position
+                  Positioned(
+                    top: (screenHeight - safeAreaTop - safeAreaBottom) * 0.4 + 45,
+                    left: 24,
+                    right: 24,
+                    child: IgnorePointer(
+                      ignoring: false,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xF2FFFFFF), // 95% white
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x33000000), // 20% black
+                              blurRadius: 20,
+                              offset: Offset(0, 10),
                               ),
                             ],
                           ),
@@ -317,8 +320,7 @@ class _FirstScreenState extends ConsumerState<FirstScreen> with TickerProviderSt
             ),
           );
         },
-      ),
-    );
+      );
   }
   
   Widget _buildRipple(double delay, double size) {

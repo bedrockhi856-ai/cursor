@@ -65,48 +65,54 @@ class _BreathingHaloState extends State<BreathingHalo>
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.size,
-      height: widget.size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // The glowing halo with breathing and hue shifting
-          Transform.scale(
-            scale: widget.scale,
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_breathingAnimation, _hueShiftAnimation]),
-              builder: (context, child) {
-                return CustomPaint(
-                  size: Size.square(widget.size),
-                  painter: _HaloPainter(
-                    opacity: _breathingAnimation.value,
-                    hueShift: _hueShiftAnimation.value,
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // The white sphere (animated)
-          Transform.scale(
-            scale: widget.scale,
-            child: Container(
-              width: widget.size * 0.657,
-              height: widget.size * 0.657,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+    return RepaintBoundary(
+      child: SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // The glowing halo with breathing and hue shifting
+            Transform.scale(
+              scale: widget.scale,
+              child: AnimatedBuilder(
+                animation: _breathingController,
+                builder: (context, _) {
+                  return AnimatedBuilder(
+                    animation: _hueShiftController,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        size: Size.square(widget.size),
+                        painter: _HaloPainter(
+                          opacity: _breathingAnimation.value,
+                          hueShift: _hueShiftAnimation.value,
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ),
-          ),
+
+            // The white sphere (static - no animation needed)
+            Transform.scale(
+              scale: widget.scale,
+              child: Container(
+                width: widget.size * 0.657,
+                height: widget.size * 0.657,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x14000000), // 8% black
+                      blurRadius: 18,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // Static digital timer (not affected by breathing animation)
           if (widget.timerText != null)
@@ -131,7 +137,8 @@ class _BreathingHaloState extends State<BreathingHalo>
                     ),
                   ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }

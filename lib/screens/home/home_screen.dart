@@ -16,6 +16,15 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
+// Pre-computed colors to avoid .withOpacity() allocations
+const _kShadowColor10 = Color(0x1A000000); // 10% black
+const _kShadowColor08 = Color(0x14000000); // 8% black
+const _kShadowColor06 = Color(0x0F000000); // 6% black
+const _kGoldGlow30 = Color(0x4DFFD700); // 30% gold
+const _kBubbleColor = Color(0xFF1E3A8A);
+const _kProfileBgColor = Color(0xFFE3F2FD);
+const _kProfileIconColor = Color(0xFF1976D2);
+
 class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _greetingController;
@@ -25,6 +34,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   late AnimationController _focusButtonController;
   late AnimationController _pulseController;
   late AnimationController _longPressController;
+  
+  bool _animationsStarted = false;
   
   // Animations
   late Animation<double> _greetingAnimation;
@@ -162,29 +173,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       ),
     );
     
-    // Start animations with mounted checks
-    _greetingController.forward();
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _progressController.forward();
-    });
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) _speechController.forward();
-    });
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) _typingController.forward();
-    });
-    
-    // Start pulse animation for focus button
-    _pulseController.repeat(reverse: true);
-    
-    // Stop typing indicator after 0.7s and show message
-    Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) {
-        setState(() {
-          _isTyping = false;
-        });
-        _typingController.reverse();
-      }
+    // Start animations after first frame to avoid jank
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _animationsStarted) return;
+      _animationsStarted = true;
+      
+      _greetingController.forward();
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) _progressController.forward();
+      });
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) _speechController.forward();
+      });
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) _typingController.forward();
+      });
+      
+      // Start pulse animation for focus button
+      _pulseController.repeat(reverse: true);
+      
+      // Stop typing indicator after 0.7s and show message
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) {
+          setState(() {
+            _isTyping = false;
+          });
+          _typingController.reverse();
+        }
+      });
     });
   }
 
@@ -350,14 +366,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           Container(
                             width: 56,
                             height: 56,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Color(0xFFE3F2FD),
+                              color: _kProfileBgColor,
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.person,
                               size: 32,
-                              color: Color(0xFF1976D2),
+                              color: _kProfileIconColor,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -366,13 +382,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                             child: Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: Color(0xFF1E3A8A),
+                                color: _kBubbleColor,
                                 borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
+                                boxShadow: const [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: _kShadowColor10,
                                     blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                    offset: Offset(0, 2),
                                   ),
                                 ],
                               ),
@@ -446,93 +462,94 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
               // Focus button with pulsing glow and long press effect
               Padding(
                 padding: const EdgeInsets.only(top: 32.0, bottom: 24.0),
-                child: AnimatedBuilder(
-                  animation: Listenable.merge([
-                    _focusButtonAnimation,
-                    _pulseAnimation,
-                    _longPressAnimation,
-                  ]),
-                  builder: (context, child) {
-                    final scale = _focusButtonAnimation.value;
-                    final pulseOpacity = _pulseAnimation.value;
-                    final fillProgress = _longPressAnimation.value;
-                    
-                    return GestureDetector(
-                      onTap: _onFocusButtonTap,
-                      onLongPressStart: _onFocusButtonLongPressStart,
-                      onLongPressEnd: _onFocusButtonLongPressEnd,
-                      onLongPress: _onFocusButtonLongPressComplete,
-                      child: Transform.scale(
-                        scale: scale,
-                        child: Stack(
-                          children: [
-                            // Pulsing glow effect
-                            Container(
-                              width: double.infinity,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: Color(0xFFFFD700).withOpacity(pulseOpacity * 0.3),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            // Main button with long press fill effect
-                            Container(
-                              width: double.infinity,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: Color(0xFFFFD700),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Color(0xFFFFD700).withOpacity(0.3),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Stack(
-                                children: [
-                                  // Fill effect from left to right
-                                  if (_isLongPressing)
-                                    Positioned.fill(
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: FractionallySizedBox(
-                                          widthFactor: fillProgress,
-                                          heightFactor: 1.0,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: Color(0xFFFFB800),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  // Button text
-                                  Center(
-                                    child: Text(
-                                      'Focus',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        fontFamily: 'Inter',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                child: _buildFocusButton(),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFocusButton() {
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: _onFocusButtonTap,
+        onLongPressStart: _onFocusButtonLongPressStart,
+        onLongPressEnd: _onFocusButtonLongPressEnd,
+        onLongPress: _onFocusButtonLongPressComplete,
+        child: ScaleTransition(
+          scale: _focusButtonAnimation,
+          child: Stack(
+            children: [
+              // Pulsing glow effect
+              FadeTransition(
+                opacity: _pulseAnimation,
+                child: Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: _kGoldGlow30,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              // Main button with long press fill effect
+              Container(
+                width: double.infinity,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: _kGoldGlow30,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+              child: Stack(
+                children: [
+                  // Fill effect from left to right
+                  if (_isLongPressing)
+                    Positioned.fill(
+                      child: AnimatedBuilder(
+                        animation: _longPressAnimation,
+                        builder: (context, _) {
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: FractionallySizedBox(
+                              widthFactor: _longPressAnimation.value,
+                              heightFactor: 1.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFB800),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  // Button text
+                  const Center(
+                    child: Text(
+                      'Focus',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         ),
       ),
     );
@@ -583,14 +600,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.grey.shade200,
+            color: const Color(0xFFEEEEEE),
             width: 1,
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: _kShadowColor08,
               blurRadius: 8,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -626,13 +643,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   }
 
   void _onStreakCardTap() {
-    // Flame icon grows and flickers
-    // This will be handled by the animation system
+    // Navigate to stats screen to see detailed streak info
+    context.go(AppRoutes.stats);
   }
 
   void _onProductiveCardTap() {
-    // Clock icon ticks forward twice
-    // This will be handled by the animation system
+    // Navigate to stats screen to see detailed time info
+    context.go(AppRoutes.stats);
   }
 
   /// Get a motivational message based on user's name and streak

@@ -42,15 +42,15 @@ class AppRoutes {
 
 /// GoRouter configuration provider
 final routerProvider = Provider<GoRouter>((ref) {
-  final isOnboardingComplete = ref.watch(isOnboardingCompleteProvider);
+  // Use read instead of watch to prevent router recreation
+  final isOnboardingComplete = ref.read(isOnboardingCompleteProvider);
   
   // Debug: Log router initialization
-  debugPrint('🔄 Router rebuilding: isOnboardingComplete=$isOnboardingComplete');
+  debugPrint('🔄 Router created: isOnboardingComplete=$isOnboardingComplete');
 
   return GoRouter(
-    // TODO: Restore after testing: isOnboardingComplete ? AppRoutes.home : AppRoutes.onboardingAge
-    initialLocation: AppRoutes.home,
-    debugLogDiagnostics: true,
+    initialLocation: isOnboardingComplete ? AppRoutes.home : AppRoutes.onboardingAge,
+    debugLogDiagnostics: kDebugMode,
     routes: [
       // Onboarding routes
       GoRoute(
@@ -151,17 +151,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
 
-    // Redirect logic
+    // Redirect logic - read fresh value each time
     redirect: (context, state) {
       final location = state.matchedLocation;
+      final onboardingComplete = ref.read(isOnboardingCompleteProvider);
       
       // If onboarding complete and trying to access onboarding, go to home
-      if (isOnboardingComplete && location.startsWith('/onboarding')) {
+      if (onboardingComplete && location.startsWith('/onboarding')) {
         return AppRoutes.home;
       }
       
       // If onboarding not complete and trying to access main app, go to onboarding
-      if (!isOnboardingComplete && 
+      if (!onboardingComplete && 
           !location.startsWith('/onboarding') &&
           location != '/') {
         return AppRoutes.onboardingAge;

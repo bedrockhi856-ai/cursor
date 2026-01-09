@@ -506,53 +506,56 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> with Ticker
                 alignment: Alignment.center,
                 children: [
                   // Animated breathing circle with rotating colors
-                  AnimatedBuilder(
-                    animation: Listenable.merge([_scaleAnimation, _auraController]),
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _scaleAnimation.value,
-                        child: Container(
-                          width: 300,
-                          height: 300,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Rotating colored border
-                              Transform.rotate(
-                                angle: _auraController.value * 2 * math.pi,
-                                child: CustomPaint(
-                                  size: const Size(300, 300),
-                                  painter: _QuarterBorderPainter(
-                                    animationValue: _scaleAnimation.value,
+                  RepaintBoundary(
+                    child: AnimatedBuilder(
+                      animation: _scaleAnimation,
+                      child: AnimatedBuilder(
+                        animation: _auraController,
+                        builder: (context, _) {
+                          return Transform.rotate(
+                            angle: _auraController.value * 2 * math.pi,
+                            child: CustomPaint(
+                              size: const Size(300, 300),
+                              painter: _QuarterBorderPainter(
+                                animationValue: _scaleAnimation.value,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      builder: (context, rotatingBorder) {
+                        return Transform.scale(
+                          scale: _scaleAnimation.value,
+                          child: SizedBox(
+                            width: 300,
+                            height: 300,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Rotating colored border
+                                rotatingBorder!,
+                                // White circle background (removed expensive BackdropFilter)
+                                Container(
+                                  width: 280,
+                                  height: 280,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFFF2F2F2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(0x0F000000),
+                                        blurRadius: 25,
+                                        offset: Offset(0, 8),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                              // White circle background with frosted effect
-                              ClipOval(
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-                                  child: Container(
-                                    width: 280,
-                                    height: 280,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.white.withOpacity(0.95),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.06),
-                                          blurRadius: 25,
-                                          offset: const Offset(0, 8),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                   // Timer and phase info (static)
                   Column(

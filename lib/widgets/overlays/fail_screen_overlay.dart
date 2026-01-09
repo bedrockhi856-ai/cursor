@@ -82,8 +82,8 @@ class _FailScreenOverlayState extends State<FailScreenOverlay>
     final screenSize = MediaQuery.of(context).size;
     
     return AnimatedBuilder(
-      animation: Listenable.merge([_rippleAnimation, _textAnimation, _buttonAnimation]),
-      builder: (context, child) {
+      animation: _rippleController,
+      builder: (context, _) {
         return SizedBox(
           width: screenSize.width,
           height: screenSize.height,
@@ -100,7 +100,7 @@ class _FailScreenOverlayState extends State<FailScreenOverlay>
                     height: 60,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.error.withOpacity(1.0),
+                      color: AppColors.error,
                     ),
                   ),
                 ),
@@ -111,65 +111,75 @@ class _FailScreenOverlayState extends State<FailScreenOverlay>
                   const Spacer(),
                   
                   // Main text
-                  Transform.scale(
-                    scale: _textAnimation.value.clamp(0.0, 2.0),
-                    child: Opacity(
-                      opacity: _textAnimation.value.clamp(0.0, 1.0),
-                      child: Text(
-                        AppStrings.betterLuckNextTime,
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.white,
-                          fontFamily: AppFonts.inter,
-                          letterSpacing: 2.0,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.5),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                  AnimatedBuilder(
+                    animation: _textAnimation,
+                    builder: (context, _) {
+                      return Transform.scale(
+                        scale: _textAnimation.value.clamp(0.0, 2.0),
+                        child: Opacity(
+                          opacity: _textAnimation.value.clamp(0.0, 1.0),
+                          child: Text(
+                            AppStrings.betterLuckNextTime,
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.white,
+                              fontFamily: AppFonts.inter,
+                              letterSpacing: 2.0,
+                              shadows: const [
+                                Shadow(
+                                  color: Color(0x80000000), // 50% black
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   
                   const Spacer(),
                   
                   // Continue button
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-                    child: Opacity(
-                      opacity: _buttonAnimation.value.clamp(0.0, 1.0),
-                      child: Transform.scale(
-                        scale: _buttonAnimation.value.clamp(0.8, 1.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 60,
-                          child: ElevatedButton(
-                            onPressed: widget.onComplete,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.white,
-                              foregroundColor: AppColors.darkRed,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              elevation: 8,
-                            ),
-                            child: Text(
-                              AppStrings.continueButton,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: AppFonts.inter,
+                  AnimatedBuilder(
+                    animation: _buttonAnimation,
+                    builder: (context, _) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                        child: Opacity(
+                          opacity: _buttonAnimation.value.clamp(0.0, 1.0),
+                          child: Transform.scale(
+                            scale: _buttonAnimation.value.clamp(0.8, 1.0),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 60,
+                              child: ElevatedButton(
+                                onPressed: widget.onComplete,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.white,
+                                  foregroundColor: AppColors.darkRed,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  elevation: 8,
+                                ),
+                                child: Text(
+                                  AppStrings.continueButton,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: AppFonts.inter,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),

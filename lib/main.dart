@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/sources/local/hive_service.dart';
 import 'core/router/app_router.dart';
 import 'core/errors/error_boundary.dart';
+import 'core/theme/theme.dart';
 
 void main() async {
-  debugPrint('===== APP STARTING =====');
+  if (kDebugMode) debugPrint('===== APP STARTING =====');
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Hive for local storage
-  debugPrint('About to initialize Hive...');
+  if (kDebugMode) debugPrint('About to initialize Hive...');
   await HiveService.init();
-  debugPrint('Hive initialization returned');
+  if (kDebugMode) debugPrint('Hive initialization returned');
   
   // Debug: Check if user exists
-  final userBox = HiveService.userBox;
-  final existingUser = userBox.get('current_user');
-  debugPrint('🔍 Existing user on startup: $existingUser');
-  debugPrint('🔍 Onboarding complete: ${existingUser?.onboardingCompleted}');
+  if (kDebugMode) {
+    final userBox = HiveService.userBox;
+    final existingUser = userBox.get('current_user');
+    debugPrint('🔍 Existing user on startup: $existingUser');
+    debugPrint('🔍 Onboarding complete: ${existingUser?.onboardingCompleted}');
+  }
   
   runApp(
     const ProviderScope(
@@ -47,10 +51,19 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   void _precacheImages() {
-    // Precache all background images used in the app
-    precacheImage(const AssetImage('assets/background/darkphone.jpg'), context);
-    precacheImage(const AssetImage('assets/background/sunset2.jpg'), context);
-    precacheImage(const AssetImage('assets/background/color.jpg'), context);
+    // Precache all background images with size limits to reduce memory
+    precacheImage(
+      const ResizeImage(AssetImage('assets/background/darkphone.jpg'), width: 1080),
+      context,
+    );
+    precacheImage(
+      const ResizeImage(AssetImage('assets/background/sunset2.jpg'), width: 1080),
+      context,
+    );
+    precacheImage(
+      const ResizeImage(AssetImage('assets/background/color.jpg'), width: 1080),
+      context,
+    );
   }
 
   @override
@@ -65,11 +78,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       },
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.orange,
-          fontFamily: 'Inter',
-          useMaterial3: true,
-        ),
+        theme: AppTheme.light,
         routerConfig: router,
         builder: (context, child) {
           return MediaQuery(

@@ -12,18 +12,11 @@ class CharacterSelectionScreen extends ConsumerStatefulWidget {
 }
 
 class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScreen> 
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   int selectedCharacter = 0;
   
-  // Animation controllers
-  late AnimationController _cardAnimationController;
-  late AnimationController _continueButtonController;
-  late AnimationController _pulseController;
-  
-  // Animations
-  late List<Animation<double>> _cardAnimations;
-  late Animation<double> _continueButtonAnimation;
-  late Animation<double> _pulseAnimation;
+  // Single animation controller for staggered card entry
+  late AnimationController _entryController;
   
   final List<Map<String, String>> characters = [
     {'name': 'David', 'title': 'unemployed engineer'},
@@ -36,80 +29,18 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
   void initState() {
     super.initState();
     
-    // Card animation controller for staggered animations
-    _cardAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     
-    // Continue button animation controller
-    _continueButtonController = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-    
-    // Pulse animation controller for attention
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-    
-    // Create staggered card animations
-    _cardAnimations = List.generate(
-      characters.length,
-      (index) => Tween<double>(
-        begin: 0.0,
-        end: 1.0,
-      ).animate(
-        CurvedAnimation(
-          parent: _cardAnimationController,
-          curve: Interval(
-            index * 0.05, // Staggered by 0.05s
-            (index + 1) * 0.05,
-            curve: Curves.easeOutBack,
-          ),
-        ),
-      ),
-    );
-    
-    // Continue button scale animation
-    _continueButtonAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(
-      CurvedAnimation(
-        parent: _continueButtonController,
-        curve: Curves.easeInOut,
-      ),
-    );
-    
-    // Pulse animation for attention
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.05,
-    ).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
-    );
-    
-    // Start card animations
-    _cardAnimationController.forward();
-    
-    // Start pulse animation after 3 seconds if no character selected
-    Future.delayed(const Duration(seconds: 3), () {
-      if (selectedCharacter == 0 && mounted) {
-        _pulseController.repeat(reverse: true);
-      }
-    });
+    // Start entry animation
+    _entryController.forward();
   }
 
   @override
   void dispose() {
-    _cardAnimationController.dispose();
-    _continueButtonController.dispose();
-    _pulseController.dispose();
+    _entryController.dispose();
     super.dispose();
   }
 
@@ -117,17 +48,9 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
     setState(() {
       selectedCharacter = index;
     });
-    
-    // Stop pulse animation when character is selected
-    _pulseController.stop();
-    _pulseController.reset();
   }
 
   void _onContinueTap() async {
-    _continueButtonController.forward().then((_) {
-      _continueButtonController.reverse();
-    });
-    
     debugPrint('🎯 CharacterSelection: Starting onboarding completion...');
     debugPrint('🎯 CharacterSelection: Selected character index: $selectedCharacter');
     
@@ -159,13 +82,13 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.menu,
                     size: 24,
                     color: Colors.black,
                   ),
                   const SizedBox(width: 12),
-                  Text(
+                  const Text(
                     'StudyBuddy',
                     style: TextStyle(
                       fontSize: 18,
@@ -200,13 +123,30 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
                   itemCount: characters.length,
                   itemBuilder: (context, index) {
                     final isSelected = selectedCharacter == index;
+                    
+                    // Staggered delay based on index
+                    final delay = index * 0.15;
+                    final start = delay.clamp(0.0, 0.7);
+                    final end = (delay + 0.3).clamp(0.0, 1.0);
+                    
                     return AnimatedBuilder(
-                      animation: _cardAnimations[index],
-                      builder: (context, child) {
+                      animation: _entryController,
+                      builder: (context, _) {
+                        // Calculate animation value for this specific card
+                        final progress = _entryController.value;
+                        double cardValue;
+                        if (progress < start) {
+                          cardValue = 0.0;
+                        } else if (progress > end) {
+                          cardValue = 1.0;
+                        } else {
+                          cardValue = ((progress - start) / (end - start)).clamp(0.0, 1.0);
+                        }
+                        
                         return Transform.translate(
-                          offset: Offset(0, 50 * (1 - _cardAnimations[index].value)),
+                          offset: Offset(0, 30 * (1 - cardValue)),
                           child: Opacity(
-                            opacity: _cardAnimations[index].value.clamp(0.0, 1.0),
+                            opacity: cardValue,
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 16.0),
                               child: _buildCharacterCard(index, isSelected),
@@ -220,51 +160,37 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
               ),
             ),
             
-            // Continue button with enhanced animations
+            // Continue button
             Padding(
               padding: const EdgeInsets.all(20.0),
-              child: AnimatedBuilder(
-                animation: Listenable.merge([
-                  _continueButtonAnimation,
-                  _pulseAnimation,
-                ]),
-                builder: (context, child) {
-                  final scale = _continueButtonAnimation.value * 
-                    (selectedCharacter == 0 ? _pulseAnimation.value : 1.0);
-                  
-                  return Transform.scale(
-                    scale: scale,
-                    child: GestureDetector(
-                      onTap: _onContinueTap,
-                      child: Container(
-                        width: double.infinity,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFD700),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFFD700).withOpacity(0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Continue',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                        ),
+              child: GestureDetector(
+                onTap: _onContinueTap,
+                child: Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD700),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFD700).withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Continue',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: 'Inter',
                       ),
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
             ),
           ],
@@ -297,34 +223,23 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
         ),
         child: Row(
           children: [
-            // Profile picture with ripple effect
-            Stack(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.grey.shade200,
-                  ),
-                  child: Icon(
-                    Icons.person,
-                    size: 30,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                // Ripple effect when selected
-                if (isSelected)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFFFD93D).withOpacity(0.2),
-                    ),
-                  ),
-              ],
+            // Profile picture
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected 
+                    ? const Color(0xFFFFD93D).withOpacity(0.2)
+                    : Colors.grey.shade200,
+              ),
+              child: Icon(
+                Icons.person,
+                size: 30,
+                color: isSelected 
+                    ? const Color(0xFFFFD93D)
+                    : Colors.grey.shade600,
+              ),
             ),
             const SizedBox(width: 16),
             // Character info
@@ -334,7 +249,7 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
                 children: [
                   Text(
                     characters[index]['name']!,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
@@ -352,6 +267,21 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
                 ],
               ),
             ),
+            // Checkmark for selected
+            if (isSelected)
+              Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFFD93D),
+                ),
+                child: const Icon(
+                  Icons.check,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
           ],
         ),
       ),

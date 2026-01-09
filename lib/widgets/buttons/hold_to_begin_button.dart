@@ -119,89 +119,100 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([
-        _holdAnimation,
-        _expandAnimation,
-        _glowAnimation,
-        _rippleAnimation,
-      ]),
-      builder: (context, child) {
-        return SizedBox(
-          width: widget.width,
-          height: widget.height,
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              // Expanding blob effect (covers most of screen)
-              if (_isCompleted)
-                Positioned(
-                  left: -(MediaQuery.of(context).size.width * 4),
-                  right: -(MediaQuery.of(context).size.width * 4),
-                  top: -(MediaQuery.of(context).size.height * 4),
-                  bottom: -(MediaQuery.of(context).size.height * 4),
-                  child: Transform.scale(
-                    scale: 1.0 + (_expandAnimation.value * 8.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.buttonColor.withOpacity(
-                          (0.8 * _expandAnimation.value).clamp(0.0, 1.0)
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _rippleAnimation,
+        builder: (context, _) {
+          return SizedBox(
+            width: widget.width,
+            height: widget.height,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                // Expanding blob effect (covers most of screen)
+                if (_isCompleted)
+                  AnimatedBuilder(
+                    animation: _expandAnimation,
+                    builder: (context, _) {
+                      return Positioned(
+                        left: -(MediaQuery.of(context).size.width * 4),
+                        right: -(MediaQuery.of(context).size.width * 4),
+                        top: -(MediaQuery.of(context).size.height * 4),
+                        bottom: -(MediaQuery.of(context).size.height * 4),
+                        child: Transform.scale(
+                          scale: 1.0 + (_expandAnimation.value * 8.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: widget.buttonColor.withOpacity(
+                                (0.8 * _expandAnimation.value).clamp(0.0, 1.0)
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
-                ),
-              
-              // Ripple 1
-              _buildRipple(0.0, 0.5),
-              
-              // Ripple 2
-              _buildRipple(0.35, 0.5),
-              
-              // Ripple 3
-              _buildRipple(0.7, 0.5),
-              
-              // Screen-filling circular glow while holding
-              if (_isHolding)
-                Positioned(
-                  left: -(MediaQuery.of(context).size.width * 2),
-                  right: -(MediaQuery.of(context).size.width * 2),
-                  top: -(MediaQuery.of(context).size.height * 2),
-                  bottom: -(MediaQuery.of(context).size.height * 2),
-                  child: Transform.scale(
-                    scale: _holdAnimation.value * 3.0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.buttonColor.withOpacity(
-                          (0.3 * _holdAnimation.value).clamp(0.0, 1.0)
+                
+                // Ripple 1
+                _buildRipple(0.0, 0.5),
+                
+                // Ripple 2
+                _buildRipple(0.35, 0.5),
+                
+                // Ripple 3
+                _buildRipple(0.7, 0.5),
+                
+                // Screen-filling circular glow while holding
+                if (_isHolding)
+                  AnimatedBuilder(
+                    animation: _holdAnimation,
+                    builder: (context, _) {
+                      return Positioned(
+                        left: -(MediaQuery.of(context).size.width * 2),
+                        right: -(MediaQuery.of(context).size.width * 2),
+                        top: -(MediaQuery.of(context).size.height * 2),
+                        bottom: -(MediaQuery.of(context).size.height * 2),
+                        child: Transform.scale(
+                          scale: _holdAnimation.value * 3.0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: widget.buttonColor.withOpacity(
+                                (0.3 * _holdAnimation.value).clamp(0.0, 1.0)
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
-                ),
-              
-              // Small glow aura while holding
-              if (_isHolding)
-                Positioned(
-                  left: -(widget.width * 0.25),
-                  right: -(widget.width * 0.25),
-                  top: -(widget.height * 0.25),
-                  bottom: -(widget.height * 0.25),
-                  child: Transform.scale(
-                    scale: 1.0 + (_glowAnimation.value * 0.3),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.buttonColor.withOpacity(
-                          (0.2 * _glowAnimation.value).clamp(0.0, 1.0)
+                
+                // Small glow aura while holding
+                if (_isHolding)
+                  AnimatedBuilder(
+                    animation: _glowAnimation,
+                    builder: (context, _) {
+                      return Positioned(
+                        left: -(widget.width * 0.25),
+                        right: -(widget.width * 0.25),
+                        top: -(widget.height * 0.25),
+                        bottom: -(widget.height * 0.25),
+                        child: Transform.scale(
+                          scale: 1.0 + (_glowAnimation.value * 0.3),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: widget.buttonColor.withOpacity(
+                                (0.2 * _glowAnimation.value).clamp(0.0, 1.0)
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
-                ),
               
               // Main button
               GestureDetector(
@@ -239,6 +250,7 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
           ),
         );
       },
+      ),
     );
   }
 
