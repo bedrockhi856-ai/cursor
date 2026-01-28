@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   haptic_feedback: ^0.1.0
   flutter_svg: ^2.0.9
+  http: ^1.2.0
   
   # State Management
   flutter_riverpod: ^2.4.9
@@ -27,6 +28,10 @@ dependencies:
   # Utilities
   equatable: ^2.0.5
   uuid: ^4.3.3
+  
+  # Supabase
+  supabase_flutter: ^2.3.0
+  cached_network_image: ^3.3.1
 
 dev_dependencies:
   flutter_test:

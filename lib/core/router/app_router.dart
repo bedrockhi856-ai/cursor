@@ -2,31 +2,23 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../screens/onboarding/age_screen.dart';
-import '../../screens/onboarding/phone_usage_screen.dart';
-import '../../screens/onboarding/professional_result_screen.dart';
-import '../../screens/onboarding/first_screen.dart';
-import '../../screens/onboarding/second_screen.dart';
-import '../../screens/onboarding/guide_intro_screen.dart';
+import '../../screens/onboarding/mentor_chat_screen.dart';
 import '../../screens/onboarding/character_selection_screen.dart';
-import '../../screens/home/home_screen.dart';
+import '../../screens/home/home_screen_redesigned.dart';
 import '../../screens/map/map_screen.dart';
 import '../../screens/stats/stats_screen.dart';
 import '../../screens/profile/profile_screen.dart';
 import '../../screens/focus/timer_setup_screen.dart';
 import '../../screens/focus/focus_timer_screen.dart';
+import '../../screens/story/story_screen.dart';
 import '../../data/providers/user_provider.dart';
 import 'app_shell.dart';
 
 /// Route names for type-safe navigation
 class AppRoutes {
   // Onboarding
-  static const String onboardingAge = '/onboarding/age';
-  static const String onboardingPhoneUsage = '/onboarding/phone-usage';
-  static const String onboardingResult = '/onboarding/result';
-  static const String onboardingFirst = '/onboarding/first';
-  static const String onboardingSecond = '/onboarding/second';
-  static const String onboardingGuideIntro = '/onboarding/guide-intro';
+  static const String onboardingStory = '/onboarding/story';
+  static const String onboardingMentor = '/onboarding/mentor';
   static const String onboardingCharacter = '/onboarding/character';
 
   // Main App (with shell/nav bar)
@@ -38,6 +30,9 @@ class AppRoutes {
   // Focus flow
   static const String timerSetup = '/focus/setup';
   static const String focusTimer = '/focus/timer';
+  
+  // Story
+  static const String story = '/story';
 }
 
 /// GoRouter configuration provider
@@ -49,48 +44,19 @@ final routerProvider = Provider<GoRouter>((ref) {
   debugPrint('🔄 Router created: isOnboardingComplete=$isOnboardingComplete');
 
   return GoRouter(
-    initialLocation: isOnboardingComplete ? AppRoutes.home : AppRoutes.onboardingAge,
+    initialLocation: isOnboardingComplete ? AppRoutes.home : AppRoutes.onboardingStory,
     debugLogDiagnostics: kDebugMode,
     routes: [
       // Onboarding routes
       GoRoute(
-        path: AppRoutes.onboardingAge,
-        name: 'onboarding-age',
-        builder: (context, state) => const AgeScreen(),
+        path: AppRoutes.onboardingStory,
+        name: 'onboarding-story',
+        builder: (context, state) => const StoryScreen(isOnboarding: true),
       ),
       GoRoute(
-        path: AppRoutes.onboardingPhoneUsage,
-        name: 'onboarding-phone-usage',
-        builder: (context, state) {
-          final age = state.extra as int? ?? 18;
-          return PhoneUsageScreen(age: age);
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.onboardingResult,
-        name: 'onboarding-result',
-        builder: (context, state) {
-          final data = state.extra as Map<String, dynamic>? ?? {};
-          return ProfessionalResultScreen(
-            age: data['age'] ?? 18,
-            phoneUsageHours: data['phoneUsage'] ?? 3,
-          );
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.onboardingFirst,
-        name: 'onboarding-first',
-        builder: (context, state) => const FirstScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.onboardingSecond,
-        name: 'onboarding-second',
-        builder: (context, state) => const SecondScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.onboardingGuideIntro,
-        name: 'onboarding-guide-intro',
-        builder: (context, state) => const GuideIntroScreen(),
+        path: AppRoutes.onboardingMentor,
+        name: 'onboarding-mentor',
+        builder: (context, state) => const MentorChatScreen(),
       ),
       GoRoute(
         path: AppRoutes.onboardingCharacter,
@@ -106,7 +72,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.home,
             name: 'home',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeScreen(),
+              child: HomeScreenRedesigned(),
             ),
           ),
           GoRoute(
@@ -149,25 +115,35 @@ final routerProvider = Provider<GoRouter>((ref) {
           return FocusTimerScreen(durationMinutes: minutes);
         },
       ),
+      
+      // Story screen (full screen)
+      GoRoute(
+        path: AppRoutes.story,
+        name: 'story',
+        builder: (context, state) => const StoryScreen(),
+      ),
     ],
 
-    // Redirect logic - read fresh value each time
+    // Redirect logic - only redirect TO onboarding screens, not away from main app
     redirect: (context, state) {
       final location = state.matchedLocation;
       final onboardingComplete = ref.read(isOnboardingCompleteProvider);
       
+      debugPrint('🔄 Redirect check: location=$location, onboardingComplete=$onboardingComplete');
+      
       // If onboarding complete and trying to access onboarding, go to home
       if (onboardingComplete && location.startsWith('/onboarding')) {
+        debugPrint('🔄 Redirecting to home (onboarding complete)');
         return AppRoutes.home;
       }
       
-      // If onboarding not complete and trying to access main app, go to onboarding
-      if (!onboardingComplete && 
-          !location.startsWith('/onboarding') &&
-          location != '/') {
-        return AppRoutes.onboardingAge;
+      // If onboarding NOT complete and at root, go to onboarding
+      if (!onboardingComplete && location == '/') {
+        debugPrint('🔄 Redirecting to onboarding (root access)');
+        return AppRoutes.onboardingMentor;
       }
       
+      // No other redirects - allow all navigation
       return null;
     },
   );

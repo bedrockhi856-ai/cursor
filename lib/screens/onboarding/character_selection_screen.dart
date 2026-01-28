@@ -60,12 +60,15 @@ class _CharacterSelectionScreenState extends ConsumerState<CharacterSelectionScr
     
     // Debug: Verify save
     final user = ref.read(userProvider);
+    final isComplete = ref.read(isOnboardingCompleteProvider);
     debugPrint('✅ CharacterSelection: Onboarding complete!');
     debugPrint('✅ CharacterSelection: User data: age=${user?.age}, character=${user?.characterId}');
     debugPrint('✅ CharacterSelection: Onboarding flag: ${user?.onboardingCompleted}');
+    debugPrint('✅ CharacterSelection: isOnboardingCompleteProvider: $isComplete');
     
     if (mounted) {
       debugPrint('🔄 CharacterSelection: Navigating to home screen...');
+      // Use pushReplacement to avoid the redirect logic interfering
       context.go(AppRoutes.home);
     }
   }

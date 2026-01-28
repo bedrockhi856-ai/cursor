@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/sources/local/hive_service.dart';
 import 'core/router/app_router.dart';
 import 'core/errors/error_boundary.dart';
 import 'core/theme/theme.dart';
+import 'core/config/app_config.dart';
 
 void main() async {
   if (kDebugMode) debugPrint('===== APP STARTING =====');
@@ -14,6 +16,13 @@ void main() async {
   if (kDebugMode) debugPrint('About to initialize Hive...');
   await HiveService.init();
   if (kDebugMode) debugPrint('Hive initialization returned');
+  
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: AppConfig.supabaseUrl,
+    anonKey: AppConfig.supabaseAnonKey,
+  );
+  if (kDebugMode) debugPrint('✅ Supabase initialized');
   
   // Debug: Check if user exists
   if (kDebugMode) {
