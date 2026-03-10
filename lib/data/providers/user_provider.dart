@@ -54,6 +54,30 @@ class UserNotifier extends StateNotifier<User?> {
     if (updated != null) state = updated;
   }
 
+  /// Update starting commitment minutes (from onboarding)
+  Future<void> updateStartingCommitment(int minutes) async {
+    final updated = await _repository.updateStartingCommitment(minutes);
+    if (updated != null) state = updated;
+  }
+
+  /// Update ultimate goal minutes (from onboarding)
+  Future<void> updateUltimateGoal(int minutes) async {
+    final updated = await _repository.updateUltimateGoal(minutes);
+    if (updated != null) state = updated;
+  }
+
+  /// Update custom daily minutes (from CustomTimeScreen)
+  Future<void> updateCustomTime(int minutes) async {
+    final updated = await _repository.updateCustomTime(minutes);
+    if (updated != null) state = updated;
+  }
+
+  /// Update goal speed in months (from GoalSpeedScreen)
+  Future<void> updateGoalSpeed(double months) async {
+    final updated = await _repository.updateGoalSpeed(months);
+    if (updated != null) state = updated;
+  }
+
   /// Delete user (reset app)
   Future<void> deleteUser() async {
     await _repository.deleteUser();
@@ -67,10 +91,16 @@ final userProvider = StateNotifierProvider<UserNotifier, User?>((ref) {
   return UserNotifier(repository);
 });
 
-/// Provider to check if onboarding is complete
+/// In-memory flag: true only after the user finishes onboarding in the
+/// current app session.  Resets to false on every hot-restart / cold-start,
+/// so the onboarding flow always shows when the app is launched fresh.
+final onboardingDoneProvider = StateProvider<bool>((ref) => false);
+
+/// Provider to check if onboarding is complete.
+/// Backed by the in-memory [onboardingDoneProvider] so it resets on
+/// hot-restart — intentionally never persisted to Hive.
 final isOnboardingCompleteProvider = Provider<bool>((ref) {
-  final user = ref.watch(userProvider);
-  return user?.onboardingCompleted ?? false;
+  return ref.watch(onboardingDoneProvider);
 });
 
 /// Provider for user's display name

@@ -91,6 +91,46 @@ class UserRepository {
     return updated;
   }
 
+  /// Update user's starting commitment minutes (set during onboarding)
+  Future<User?> updateStartingCommitment(int minutes) async {
+    final user = getCurrentUser();
+    if (user == null) return null;
+    final updated = user.copyWith(startingCommitmentMinutes: minutes);
+    await _localSource.saveUser(updated);
+    debugPrint('💾 Starting commitment saved: ${minutes}min');
+    return updated;
+  }
+
+  /// Update user's ultimate goal minutes (set during onboarding)
+  Future<User?> updateUltimateGoal(int minutes) async {
+    final user = getCurrentUser();
+    if (user == null) return null;
+    final updated = user.copyWith(ultimateGoalMinutes: minutes);
+    await _localSource.saveUser(updated);
+    debugPrint('💾 Ultimate goal saved: ${minutes}min');
+    return updated;
+  }
+
+  /// Update user's custom daily minutes (from CustomTimeScreen)
+  Future<User?> updateCustomTime(int minutes) async {
+    final user = getCurrentUser();
+    if (user == null) return null;
+    final updated = user.copyWith(customDailyMinutes: minutes);
+    await _localSource.saveUser(updated);
+    debugPrint('💾 Custom daily time saved: ${minutes}min');
+    return updated;
+  }
+
+  /// Update user's goal speed in months (from GoalSpeedScreen)
+  Future<User?> updateGoalSpeed(double months) async {
+    final user = getCurrentUser();
+    if (user == null) return null;
+    final updated = user.copyWith(goalSpeedMonths: months);
+    await _localSource.saveUser(updated);
+    debugPrint('💾 Goal speed saved: ${months} months');
+    return updated;
+  }
+
   /// Mark onboarding as complete
   Future<User?> completeOnboarding() async {
     final user = getCurrentUser();

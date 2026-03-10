@@ -26,6 +26,18 @@ class User extends Equatable {
   @HiveField(6)
   final bool onboardingCompleted;
 
+  @HiveField(7)
+  final int? startingCommitmentMinutes;
+
+  @HiveField(8)
+  final int? ultimateGoalMinutes;
+
+  @HiveField(9)
+  final int? customDailyMinutes;
+
+  @HiveField(10)
+  final double? goalSpeedMonths;
+
   const User({
     required this.id,
     required this.name,
@@ -34,6 +46,10 @@ class User extends Equatable {
     this.characterId,
     required this.createdAt,
     this.onboardingCompleted = false,
+    this.startingCommitmentMinutes,
+    this.ultimateGoalMinutes,
+    this.customDailyMinutes,
+    this.goalSpeedMonths,
   });
 
   /// Create a new user with default values
@@ -64,6 +80,10 @@ class User extends Equatable {
     String? characterId,
     DateTime? createdAt,
     bool? onboardingCompleted,
+    int? startingCommitmentMinutes,
+    int? ultimateGoalMinutes,
+    int? customDailyMinutes,
+    double? goalSpeedMonths,
   }) {
     return User(
       id: id ?? this.id,
@@ -73,6 +93,10 @@ class User extends Equatable {
       characterId: characterId ?? this.characterId,
       createdAt: createdAt ?? this.createdAt,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      startingCommitmentMinutes: startingCommitmentMinutes ?? this.startingCommitmentMinutes,
+      ultimateGoalMinutes: ultimateGoalMinutes ?? this.ultimateGoalMinutes,
+      customDailyMinutes: customDailyMinutes ?? this.customDailyMinutes,
+      goalSpeedMonths: goalSpeedMonths ?? this.goalSpeedMonths,
     );
   }
 
@@ -102,5 +126,9 @@ class User extends Equatable {
         characterId,
         createdAt,
         onboardingCompleted,
+        startingCommitmentMinutes,
+        ultimateGoalMinutes,
+        customDailyMinutes,
+        goalSpeedMonths,
       ];
 }

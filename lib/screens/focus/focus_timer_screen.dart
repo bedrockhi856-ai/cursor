@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,10 +46,9 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> with Ticker
   double _pausedAnimationValue = 0.0;
   double _pausedAuraValue = 0.0;
   
-  // Background timer handling - track when session should end
+  // Background timer handling
   DateTime? _sessionEndTime;
   DateTime? _pausedAt;
-  Duration _pausedDuration = Duration.zero;
 
   @override
   void initState() {
@@ -72,7 +70,7 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> with Ticker
     
     // Cycle controller for continuous animation
     _cycleController = AnimationController(
-      duration: const Duration(seconds: 25), // Full cycle: 4+7+8+6
+      duration: const Duration(seconds: 25),
       vsync: this,
     );
     
@@ -94,7 +92,7 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> with Ticker
       duration: const Duration(milliseconds: 300),
     );
     
-    // Scale animation with smooth easing (14% expansion from min to max)
+    // Scale animation with smooth easing
     _scaleAnimation = Tween<double>(
       begin: 0.86,
       end: 0.98,
@@ -164,7 +162,6 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen> with Ticker
     
     // Calculate how much time passed while in background
     if (_pausedAt != null) {
-      final backgroundDuration = now.difference(_pausedAt!);
       _pausedAt = null;
       
       // Update remaining seconds based on actual elapsed time
@@ -820,68 +817,5 @@ class _QuarterBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(_QuarterBorderPainter oldDelegate) {
     return oldDelegate.animationValue != animationValue;
-  }
-}
-
-// Custom painter for session progress ring
-class _SessionProgressPainter extends CustomPainter {
-  final double progress;
-  final Color backgroundColor;
-  final Color progressColor;
-  
-  _SessionProgressPainter({
-    required this.progress,
-    required this.backgroundColor,
-    required this.progressColor,
-  });
-  
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 4;
-    const strokeWidth = 4.0;
-    
-    // Background ring
-    final bgPaint = Paint()
-      ..color = backgroundColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-    
-    canvas.drawCircle(center, radius, bgPaint);
-    
-    // Progress arc
-    if (progress > 0) {
-      final progressPaint = Paint()
-        ..shader = SweepGradient(
-          startAngle: -math.pi / 2,
-          endAngle: math.pi * 2 - math.pi / 2,
-          colors: [
-            progressColor.withOpacity(0.4),
-            progressColor,
-            progressColor,
-          ],
-          stops: const [0.0, 0.5, 1.0],
-          transform: const GradientRotation(-math.pi / 2),
-        ).createShader(Rect.fromCircle(center: center, radius: radius))
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
-      
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -math.pi / 2, // Start from top
-        progress * 2 * math.pi, // Sweep based on progress
-        false,
-        progressPaint,
-      );
-    }
-  }
-  
-  @override
-  bool shouldRepaint(_SessionProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-           oldDelegate.backgroundColor != backgroundColor ||
-           oldDelegate.progressColor != progressColor;
   }
 }

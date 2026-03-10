@@ -2,9 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../screens/onboarding/mentor_chat_screen.dart';
-import '../../screens/onboarding/character_selection_screen.dart';
-import '../../screens/home/home_screen_redesigned.dart';
+import '../../screens/onboarding/goal_selection_screen.dart';
+import '../../screens/onboarding/future_goal_screen.dart';
+import '../../screens/onboarding/success_rate_screen.dart';
+import '../../screens/onboarding/start_time_screen.dart';
+import '../../screens/onboarding/custom_time_screen.dart';
+import '../../screens/onboarding/goal_speed_screen.dart';
+import '../../screens/onboarding/consistency_screen.dart';
+import '../../screens/home/home_screen_nodes.dart';
 import '../../screens/map/map_screen.dart';
 import '../../screens/stats/stats_screen.dart';
 import '../../screens/profile/profile_screen.dart';
@@ -17,9 +22,13 @@ import 'app_shell.dart';
 /// Route names for type-safe navigation
 class AppRoutes {
   // Onboarding
-  static const String onboardingStory = '/onboarding/story';
-  static const String onboardingMentor = '/onboarding/mentor';
-  static const String onboardingCharacter = '/onboarding/character';
+  static const String onboardingGoal = '/onboarding/goal';
+  static const String onboardingTarget = '/onboarding/target';
+  static const String onboardingPsychology = '/onboarding/psychology';
+  static const String onboardingCommitment = '/onboarding/commitment';
+  static const String onboardingCustomTime = '/onboarding/custom-time';
+  static const String onboardingGrowthPace = '/onboarding/growth-pace';
+  static const String onboardingConsistency = '/onboarding/consistency';
 
   // Main App (with shell/nav bar)
   static const String home = '/home';
@@ -37,31 +46,51 @@ class AppRoutes {
 
 /// GoRouter configuration provider
 final routerProvider = Provider<GoRouter>((ref) {
-  // Use read instead of watch to prevent router recreation
+  // Get initial state
   final isOnboardingComplete = ref.read(isOnboardingCompleteProvider);
   
   // Debug: Log router initialization
   debugPrint('🔄 Router created: isOnboardingComplete=$isOnboardingComplete');
 
   return GoRouter(
-    initialLocation: isOnboardingComplete ? AppRoutes.home : AppRoutes.onboardingStory,
+    initialLocation: isOnboardingComplete ? AppRoutes.home : AppRoutes.onboardingGoal,
     debugLogDiagnostics: kDebugMode,
     routes: [
       // Onboarding routes
       GoRoute(
-        path: AppRoutes.onboardingStory,
-        name: 'onboarding-story',
-        builder: (context, state) => const StoryScreen(isOnboarding: true),
+        path: AppRoutes.onboardingGoal,
+        name: 'onboarding-goal',
+        builder: (context, state) => const GoalSelectionScreen(),
       ),
       GoRoute(
-        path: AppRoutes.onboardingMentor,
-        name: 'onboarding-mentor',
-        builder: (context, state) => const MentorChatScreen(),
+        path: AppRoutes.onboardingTarget,
+        name: 'onboarding-target',
+        builder: (context, state) => const FutureGoalScreen(),
       ),
       GoRoute(
-        path: AppRoutes.onboardingCharacter,
-        name: 'onboarding-character',
-        builder: (context, state) => const CharacterSelectionScreen(),
+        path: AppRoutes.onboardingPsychology,
+        name: 'onboarding-psychology',
+        builder: (context, state) => const SuccessRateScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingCommitment,
+        name: 'onboarding-commitment',
+        builder: (context, state) => const StartTimeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingCustomTime,
+        name: 'onboarding-custom-time',
+        builder: (context, state) => const CustomTimeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingGrowthPace,
+        name: 'onboarding-growth-pace',
+        builder: (context, state) => const GoalSpeedScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingConsistency,
+        name: 'onboarding-consistency',
+        builder: (context, state) => const ConsistencyScreen(),
       ),
 
       // Main app with shell (bottom nav bar)
@@ -72,7 +101,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.home,
             name: 'home',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeScreenRedesigned(),
+              child: HomeScreenNodes(),
             ),
           ),
           GoRoute(
@@ -124,12 +153,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
 
-    // Redirect logic - only redirect TO onboarding screens, not away from main app
+    // Redirect logic - prevent accessing onboarding after completion
     redirect: (context, state) {
       final location = state.matchedLocation;
+      // Read once - don't watch to avoid rebuild loops
       final onboardingComplete = ref.read(isOnboardingCompleteProvider);
       
       debugPrint('🔄 Redirect check: location=$location, onboardingComplete=$onboardingComplete');
+      
+      // onboarding is considered "done" when goalSpeedMonths has been saved
+      // (the step right before ConsistencyScreen).  onboardingCompleted is
+      // intentionally never set to true.
       
       // If onboarding complete and trying to access onboarding, go to home
       if (onboardingComplete && location.startsWith('/onboarding')) {
@@ -137,10 +171,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppRoutes.home;
       }
       
-      // If onboarding NOT complete and at root, go to onboarding
+      // If onboarding NOT complete and at root, go to onboarding goal
       if (!onboardingComplete && location == '/') {
-        debugPrint('🔄 Redirecting to onboarding (root access)');
-        return AppRoutes.onboardingMentor;
+        debugPrint('🔄 Redirecting to onboarding goal (root access)');
+        return AppRoutes.onboardingGoal;
       }
       
       // No other redirects - allow all navigation

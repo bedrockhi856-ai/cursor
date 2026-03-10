@@ -24,13 +24,17 @@ class UserAdapter extends TypeAdapter<User> {
       characterId: fields[4] as String?,
       createdAt: fields[5] as DateTime,
       onboardingCompleted: fields[6] as bool,
+      startingCommitmentMinutes: fields[7] as int?,
+      ultimateGoalMinutes: fields[8] as int?,
+      customDailyMinutes: fields[9] as int?,
+      goalSpeedMonths: fields[10] as double?,
     );
   }
 
   @override
   void write(BinaryWriter writer, User obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,7 +48,15 @@ class UserAdapter extends TypeAdapter<User> {
       ..writeByte(5)
       ..write(obj.createdAt)
       ..writeByte(6)
-      ..write(obj.onboardingCompleted);
+      ..write(obj.onboardingCompleted)
+      ..writeByte(7)
+      ..write(obj.startingCommitmentMinutes)
+      ..writeByte(8)
+      ..write(obj.ultimateGoalMinutes)
+      ..writeByte(9)
+      ..write(obj.customDailyMinutes)
+      ..writeByte(10)
+      ..write(obj.goalSpeedMonths);
   }
 
   @override

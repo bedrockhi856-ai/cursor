@@ -29,7 +29,8 @@ void main() async {
     final userBox = HiveService.userBox;
     final existingUser = userBox.get('current_user');
     debugPrint('🔍 Existing user on startup: $existingUser');
-    debugPrint('🔍 Onboarding complete: ${existingUser?.onboardingCompleted}');
+    debugPrint('🔍 goalSpeedMonths (onboarding data): ${existingUser?.goalSpeedMonths}');
+    debugPrint('🔍 Note: onboarding always shown on fresh start (in-memory flag)');
   }
   
   runApp(

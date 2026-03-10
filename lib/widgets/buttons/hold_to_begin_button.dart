@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// A button that requires the user to hold for 2 seconds
 /// Features expanding blob effect and glow animation
@@ -86,9 +87,7 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
     setState(() {
       _isCompleted = true;
     });
-    _expandController.forward().then((_) {
-      widget.onHoldComplete();
-    });
+    widget.onHoldComplete();
   }
 
   @override
@@ -130,39 +129,22 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
               alignment: Alignment.center,
               clipBehavior: Clip.none,
               children: [
-                // Expanding blob effect (covers most of screen)
-                if (_isCompleted)
-                  AnimatedBuilder(
-                    animation: _expandAnimation,
-                    builder: (context, _) {
-                      return Positioned(
-                        left: -(MediaQuery.of(context).size.width * 4),
-                        right: -(MediaQuery.of(context).size.width * 4),
-                        top: -(MediaQuery.of(context).size.height * 4),
-                        bottom: -(MediaQuery.of(context).size.height * 4),
-                        child: Transform.scale(
-                          scale: 1.0 + (_expandAnimation.value * 8.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: widget.buttonColor.withOpacity(
-                                (0.8 * _expandAnimation.value).clamp(0.0, 1.0)
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                // Ripple 1 (constant)
+                _buildRipple(0.0, 0.5, false),
                 
-                // Ripple 1
-                _buildRipple(0.0, 0.5),
+                // Ripple 2 (constant)
+                _buildRipple(0.35, 0.5, false),
                 
-                // Ripple 2
-                _buildRipple(0.35, 0.5),
+                // Ripple 3 (constant)
+                _buildRipple(0.7, 0.5, false),
                 
-                // Ripple 3
-                _buildRipple(0.7, 0.5),
+                // Hold ripples (larger, only when holding)
+                if (_isHolding) ...[
+                  _buildRipple(0.0, 2.5, true),
+                  _buildRipple(0.25, 2.5, true),
+                  _buildRipple(0.5, 2.5, true),
+                  _buildRipple(0.75, 2.5, true),
+                ],
                 
                 // Screen-filling circular glow while holding
                 if (_isHolding)
@@ -179,7 +161,7 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
                           child: Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: widget.buttonColor.withOpacity(
+                              color: Colors.white.withOpacity(
                                 (0.3 * _holdAnimation.value).clamp(0.0, 1.0)
                               ),
                             ),
@@ -204,7 +186,7 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
                           child: Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: widget.buttonColor.withOpacity(
+                              color: Colors.white.withOpacity(
                                 (0.2 * _glowAnimation.value).clamp(0.0, 1.0)
                               ),
                             ),
@@ -234,13 +216,13 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
                     ],
                   ),
                   child: Center(
-                    child: Text(
-                      widget.text,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                        fontFamily: 'Arial',
+                    child: SvgPicture.asset(
+                      'assets/illustrations/fingerprint.svg',
+                      width: widget.width * 0.5,
+                      height: widget.height * 0.5,
+                      colorFilter: const ColorFilter.mode(
+                        Colors.black,
+                        BlendMode.srcIn,
                       ),
                     ),
                   ),
@@ -254,9 +236,12 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
     );
   }
 
-  Widget _buildRipple(double delay, double maxScale) {
+  Widget _buildRipple(double delay, double maxScale, bool isHoldRipple) {
     // Calculate the ripple animation value based on delay
     double rippleValue = (_rippleAnimation.value + delay) % 1.0;
+    
+    // Use stronger opacity for hold ripples
+    final baseOpacity = isHoldRipple ? 0.4 : 0.3;
     
     return Positioned(
       left: -(widget.width * maxScale),
@@ -268,12 +253,19 @@ class _HoldToBeginButtonState extends State<HoldToBeginButton>
         child: Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(
-              color: widget.buttonColor.withOpacity(
-                (0.5 * (1.0 - rippleValue)).clamp(0.0, 1.0)
-              ),
-              width: 3.0,
-            ),
+            border: isHoldRipple 
+              ? Border.all(
+                  color: widget.buttonColor.withOpacity(
+                    (baseOpacity * (1.0 - rippleValue)).clamp(0.0, 1.0)
+                  ),
+                  width: 2.5,
+                )
+              : null,
+            color: isHoldRipple 
+              ? null
+              : widget.buttonColor.withOpacity(
+                  (baseOpacity * (1.0 - rippleValue)).clamp(0.0, 1.0)
+                ),
           ),
         ),
       ),

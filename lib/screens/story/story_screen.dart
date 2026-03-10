@@ -1,9 +1,20 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/supabase_storage_service.dart';
 import '../../core/router/app_router.dart';
+
+/// Story narration texts for each frame
+const List<String> _storyTexts = [
+  'As a Teenager, I saw my father cleaning floors of the station. I really want to give him better life. I hated being poor.',
+  'To give my parents a good life I started studying hard to pursue my dream of becoming a lawyer.',
+  'I soon found myself procrastinating, bored, and frustrated—wasting time and almost failing my exams.',
+  'After years of failing I finally found the lessons hard way.',
+  'I went from an undisciplined, inconsistent, and distracted kid to a Laser-Focused, Disciplined Unstoppable man.',
+  'The smile on their faces was worth the grind. I can teach you my years of failures in few minutes.',
+];
 
 /// Full-screen story viewer with tap-to-advance navigation
 class StoryScreen extends StatefulWidget {
@@ -16,33 +27,24 @@ class StoryScreen extends StatefulWidget {
   State<StoryScreen> createState() => _StoryScreenState();
 }
 
-class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin {
-  late PageController _pageController;
+class _StoryScreenState extends State<StoryScreen> {
   late List<String> _imageUrls;
   int _currentPage = 0;
-  
-  // Progress animation
-  late AnimationController _progressController;
+  bool _imagesPrefetched = false; // Guard flag
+  bool _isTransitioning = false; // Prevent rapid taps
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
     _imageUrls = SupabaseStorageService.getJhonStoryImages();
     
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 5), // Auto-advance after 5 seconds
-    )..addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _nextPage();
+    // Prefetch all images after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_imagesPrefetched && mounted) {
+        _prefetchImages();
+        _imagesPrefetched = true;
       }
     });
-    
-    _startProgress();
-    
-    // Prefetch all images for faster loading
-    _prefetchImages();
   }
   
   /// Prefetch all story images to cache
@@ -57,22 +59,26 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
 
   @override
   void dispose() {
-    _pageController.dispose();
-    _progressController.dispose();
     super.dispose();
   }
 
-  void _startProgress() {
-    _progressController.reset();
-    _progressController.forward();
-  }
-
   void _nextPage() {
+    if (_isTransitioning) return;
+    
     if (_currentPage < _imageUrls.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      setState(() {
+        _isTransitioning = true;
+        _currentPage++;
+      });
+      
+      // Reset transition flag after animation completes
+      Future.delayed(const Duration(milliseconds: 650), () {
+        if (mounted) {
+          setState(() {
+            _isTransitioning = false;
+          });
+        }
+      });
     } else {
       // Story finished
       _onStoryComplete();
@@ -81,8 +87,8 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
   
   void _onStoryComplete() {
     if (widget.isOnboarding) {
-      // Navigate to mentor chat
-      context.go(AppRoutes.onboardingMentor);
+      // Navigate to home after onboarding story
+      context.go(AppRoutes.home);
     } else {
       // Just go back
       Navigator.of(context).pop();
@@ -90,11 +96,22 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
   }
 
   void _previousPage() {
+    if (_isTransitioning) return;
+    
     if (_currentPage > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      setState(() {
+        _isTransitioning = true;
+        _currentPage--;
+      });
+      
+      // Reset transition flag after animation completes
+      Future.delayed(const Duration(milliseconds: 650), () {
+        if (mounted) {
+          setState(() {
+            _isTransitioning = false;
+          });
+        }
+      });
     }
   }
 
@@ -108,27 +125,31 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
     _nextPage();
   }
 
-  void _onPageChanged(int page) {
-    setState(() {
-      _currentPage = page;
-    });
-    _startProgress();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Image PageView
-          PageView.builder(
-            controller: _pageController,
-            onPageChanged: _onPageChanged,
-            itemCount: _imageUrls.length,
-            itemBuilder: (context, index) {
-              return _StoryImage(imageUrl: _imageUrls[index]);
+          // Image with fade animation
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 600),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
             },
+            child: Stack(
+              key: ValueKey<int>(_currentPage),
+              children: [
+                _StoryImage(imageUrl: _imageUrls[_currentPage]),
+                // Text overlay
+                _StoryTextOverlay(text: _storyTexts[_currentPage]),
+              ],
+            ),
           ),
           
           // Tap zones for navigation
@@ -157,27 +178,6 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
             ),
           ),
           
-          // Progress indicators at top
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 8,
-            right: 8,
-            child: Row(
-              children: List.generate(_imageUrls.length, (index) {
-                return Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    height: 3,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: _buildProgressBar(index),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-          
           // Close button
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
@@ -202,28 +202,6 @@ class _StoryScreenState extends State<StoryScreen> with TickerProviderStateMixin
       ),
     );
   }
-
-  Widget _buildProgressBar(int index) {
-    if (index < _currentPage) {
-      // Completed - full
-      return Container(color: Colors.white);
-    } else if (index == _currentPage) {
-      // Current - animated
-      return AnimatedBuilder(
-        animation: _progressController,
-        builder: (context, child) {
-          return LinearProgressIndicator(
-            value: _progressController.value,
-            backgroundColor: Colors.white.withOpacity(0.3),
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-          );
-        },
-      );
-    } else {
-      // Upcoming - empty
-      return Container(color: Colors.white.withOpacity(0.3));
-    }
-  }
 }
 
 /// Single story image with loading and error states
@@ -241,14 +219,10 @@ class _StoryImage extends StatelessWidget {
       height: double.infinity,
       // Optimize memory by limiting cached image size
       memCacheWidth: 1080,
+      fadeInDuration: Duration.zero, // No fade since prefetched
+      fadeOutDuration: Duration.zero,
       placeholder: (context, url) => Container(
-        color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2,
-          ),
-        ),
+        color: Colors.black, // Just black screen, no spinner
       ),
       errorWidget: (context, url, error) => Center(
         child: Column(
@@ -261,6 +235,65 @@ class _StoryImage extends StatelessWidget {
               style: TextStyle(color: Colors.white.withOpacity(0.7)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Text overlay with rounded container
+class _StoryTextOverlay extends StatelessWidget {
+  final String text;
+  
+  const _StoryTextOverlay({required this.text});
+  
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 80),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.5),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
+                  letterSpacing: 0.3,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black45,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
         ),
       ),
     );

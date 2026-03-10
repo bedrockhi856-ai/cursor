@@ -44,12 +44,15 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
     FlutterError.presentError(details);
     widget.onError?.call(details.exception, details.stack);
     
-    if (mounted) {
-      setState(() {
-        _error = details.exception;
-        _stackTrace = details.stack;
-      });
-    }
+    // Defer setState to avoid calling it during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _error = details.exception;
+          _stackTrace = details.stack;
+        });
+      }
+    });
   }
 
   void _resetError() {
@@ -133,15 +136,17 @@ class _DefaultErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                 // Error icon with animated container
                 Container(
                   width: 100,
@@ -270,6 +275,7 @@ class _DefaultErrorWidget extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }
